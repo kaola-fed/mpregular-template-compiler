@@ -123,7 +123,7 @@ op.statement = function(){
       return node.text(text.replace(rRN, '\n'));
     case 'TAG_OPEN':
       return this.xml();
-    case 'OPEN': 
+    case 'OPEN':
       return this.directive();
     case 'EXPR_OPEN':
       return this.interplation();
@@ -132,7 +132,7 @@ op.statement = function(){
   }
 }
 
-// xml 
+// xml
 // stag statement* TAG_CLOSE?(if self-closed tag)
 op.xml = function(){
   var name, attrs, children, selfClosed;
@@ -156,9 +156,9 @@ op.xml = function(){
 //  -attribute
 //
 // __example__
-//  name = 1 |  
+//  name = 1 |
 //  ng-hide |
-//  on-click={{}} | 
+//  on-click={{}} |
 //  {{#if name}}on-click={{xx}}{{#else}}on-tap={{}}{{/if}}
 
 op.xentity = function(ll){
@@ -180,7 +180,7 @@ op.xentity = function(ll){
 
 }
 
-// stag     ::=    '<' Name (S attr)* S? '>'  
+// stag     ::=    '<' Name (S attr)* S? '>'
 // attr    ::=     Name Eq attvalue
 op.attrs = function(isAttribute){
   var eat
@@ -198,7 +198,7 @@ op.attrs = function(isAttribute){
 }
 
 // attvalue
-//  : STRING  
+//  : STRING
 //  | NAME
 op.attvalue = function(mdf){
   var ll = this.ll();
@@ -245,9 +245,7 @@ op.interplation = function(){
 
 // {{~}}
 op.inc = op.include = function(){
-  var content = this.expression();
-  this.match('END');
-  return node.template(content);
+  this.error( 'include directive is not supported' )
 }
 
 // {{#if}}
@@ -324,7 +322,7 @@ op.list = function(){
       container.push(this.statement());
     }
   }
-  
+
   if(ll.value !== 'list') this.error('expect ' + 'list got ' + '/' + ll.value + ' ', ll.pos );
   return node.list(sequence, variable, consequent, alternate, track);
 }
@@ -354,55 +352,12 @@ op.expr = function(){
 
 
 // filter
-// assign ('|' filtername[':' args]) * 
+// assign ('|' filtername[':' args]) *
 op.filter = function(){
   var left = this.assign();
   var ll = this.eat('|');
-  var buffer = [], filters,setBuffer, prefix,
-    attr = "t", 
-    set = left.set, get, 
-    tmp = "";
-
-  if(ll){
-    if(set) {
-      setBuffer = [];
-      filters = [];
-    }
-
-    prefix = "(function(" + attr + "){";
-
-    do{
-      var filterName = this.match('IDENT').value;
-      tmp = attr + " = " + ctxName + "._f_('" + filterName + "' ).get.call( "+_.ctxName +"," + attr ;
-      if(this.eat(':')){
-        tmp +=", "+ this.arguments("|").join(",") + ");"
-      }else{
-        tmp += ');'
-      }
-      buffer.push(tmp);
-      
-      if(set){
-        // only in runtime ,we can detect  whether  the filter has a set function. 
-        filters.push(filterName);
-        setBuffer.unshift( tmp.replace(" ).get.call", " ).set.call") );
-      }
-
-    }while(ll = this.eat('|'));
-    buffer.push("return " + attr );
-    setBuffer && setBuffer.push("return " + attr);
-
-    get =  prefix + buffer.join("") + "})("+left.get+")";
-    // we call back to value.
-    if(setBuffer){
-      // change _ss__(name, _p_) to _s__(name, filterFn(_p_));
-      set = set.replace(_.setName, 
-        prefix + setBuffer.join("") + "})("+　_.setName　+")" );
-
-    }
-    // the set function is depend on the filter definition. if it have set method, the set will work
-    var ret = getset(get, set);
-    ret.filters = filters;
-    return ret;
+  if (ll) {
+    this.error( 'filter is not supported' )
   }
   return left;
 }
@@ -412,9 +367,7 @@ op.filter = function(){
 op.assign = function(){
   var left = this.condition(), ll;
   if(ll = this.eat(['=', '+=', '-=', '*=', '/=', '%='])){
-    if(!left.set) this.error('invalid lefthand expression in assignment expression');
-    return getset( left.set.replace( "," + _.setName, "," + this.condition().get ).replace("'='", "'"+ll.type+"'"), left.set);
-    // return getset('(' + left.get + ll.type  + this.condition().get + ')', left.set);
+    this.error( 'assignment expression is not supported' )
   }
   return left;
 }
@@ -425,9 +378,9 @@ op.condition = function(){
 
   var test = this.or();
   if(this.eat('?')){
-    return getset([test.get + "?", 
-      this.assign().get, 
-      this.match(":").type, 
+    return getset([test.get + "?",
+      this.assign().get,
+      this.match(":").type,
       this.assign().get].join(""));
   }
 
@@ -458,7 +411,7 @@ op.and = function(){
   return left;
 }
 // relation
-// 
+//
 // equal == relation
 // equal != relation
 // equal === relation
@@ -512,10 +465,7 @@ op.range = function(){
   var left = this.unary(), ll, right;
 
   if(ll = this.eat('..')){
-    right = this.unary();
-    var body = 
-      "(function(start,end){var res = [],step=end>start?1:-1; for(var i = start; end>start?i <= end: i>=end; i=i+step){res.push(i); } return res })("+left.get+","+right.get+")"
-    return getset(body);
+    this.error( 'range expression `..` is not supported' )
   }
 
   return left;
@@ -540,7 +490,7 @@ op.unary = function(){
 // call[lefthand] :
 // member args
 // member [ expression ]
-// member . ident  
+// member . ident
 
 op.member = function(base, last, pathes, prevBase){
   var ll, path;
@@ -550,7 +500,7 @@ op.member = function(base, last, pathes, prevBase){
   if(!base){ //first
     path = this.primary();
     var type = typeof path;
-    if(type === 'string'){ 
+    if(type === 'string'){
       pathes = [];
       pathes.push( path );
       last = path;
@@ -579,7 +529,7 @@ op.member = function(base, last, pathes, prevBase){
           // member(object, property, computed)
         var tmpName = this.match('IDENT').value;
         prevBase = base;
-        if( this.la() !== "(" ){ 
+        if( this.la() !== "(" ){
           base = ctxName + "._sg_('" + tmpName + "', " + base + ")";
         }else{
           base += "." + tmpName ;
@@ -589,7 +539,7 @@ op.member = function(base, last, pathes, prevBase){
           // member(object, property, computed)
         path = this.assign();
         prevBase = base;
-        if( this.la() !== "(" ){ 
+        if( this.la() !== "(" ){
         // means function call, we need throw undefined error when call function
         // and confirm that the function call wont lose its context
           base = ctxName + "._sg_(" + path.get + ", " + base + ")";
@@ -612,18 +562,18 @@ op.member = function(base, last, pathes, prevBase){
   if( pathes && pathes.length ) this.depend.push( pathes );
   var res =  {get: base};
   if(last){
-    res.set = ctxName + "._ss_(" + 
-        (last.get? last.get : "'"+ last + "'") + 
-        ","+ _.setName + ","+ 
-        (prevBase?prevBase:_.varName) + 
+    res.set = ctxName + "._ss_(" +
+        (last.get? last.get : "'"+ last + "'") +
+        ","+ _.setName + ","+
+        (prevBase?prevBase:_.varName) +
         ", '=', "+ ( onlySimpleAccessor? 1 : 0 ) + ")";
-  
+
   }
   return res;
 }
 
 /**
- * 
+ *
  */
 op.arguments = function(end){
   end = end || ')'
@@ -638,7 +588,7 @@ op.arguments = function(end){
 
 
 // primary :
-// this 
+// this
 // ident
 // literal
 // array
@@ -669,7 +619,7 @@ op.primary = function(){
         return getset( ll.value );
       }
       return ll.value;
-    default: 
+    default:
       this.error('Unexpected Token: ' + ll.type);
   }
 }
