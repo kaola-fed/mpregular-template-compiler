@@ -65,6 +65,17 @@ class Compiler {
     const raw = ast.raw ? ast.raw.trim() : ''
     return `{{ ${ raw } }}`
   }
+
+  'if'( ast ) {
+    return `<block wx:if="{{ ${ ast.test.raw } }}">${ this.render( ast.consequent ) }</block><block wx:else>${ this.render( ast.alternate ) }</block>`
+  }
+
+  'list'( ast ) {
+    const sequence = ast.sequence.raw
+    const body = ast.body
+
+    return `<block wx:for="{{ ${ sequence } }}" wx:for-item="${ ast.variable }" wx:for-index="${ ast.variable }_index">${ this.render( body ) }</block>`
+  }
 }
 
 module.exports = Compiler

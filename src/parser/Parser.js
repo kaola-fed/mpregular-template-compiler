@@ -342,7 +342,7 @@ op.expression = function(){
 
   var endToken = this.ll();
 
-  expression.raw = this.input.slice( startToken.pos, endToken.pos )
+  expression.raw = this.input.slice( startToken.pos, endToken.pos ).trim()
 
   return expression;
 }
