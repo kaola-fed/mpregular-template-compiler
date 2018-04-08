@@ -1,4 +1,5 @@
 const TemplateParser = require( './parser/Parser' )
+const { transformTagName } = require( './helpers' )
 
 class Compiler {
   compile( template, options = {} ) {
@@ -25,14 +26,15 @@ class Compiler {
   }
 
   element( ast ) {
-    const tagName = ast.tag || ''
+    const beforeTagName = ast.tag || 'div'
+    const afterTagName = transformTagName( beforeTagName )
     const children = ast.children || []
     const attrs = ast.attrs || []
 
     const attributeStr = attrs
       .map( attr => {
         if ( attr.name === 'class' ) {
-          return `class="_${ tagName } ${ attr.value }"`
+          return `class="_${ beforeTagName } ${ attr.value }"`
         }
 
         return this.render( attr )
@@ -41,7 +43,7 @@ class Compiler {
 
     const childrenStr = this.render( children )
 
-    return `<${ tagName } ${ attributeStr }>${ childrenStr }</${ tagName }>`
+    return `<${ afterTagName } ${ attributeStr }>${ childrenStr }</${ afterTagName }>`
   }
 
   attribute( ast ) {
