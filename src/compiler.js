@@ -72,9 +72,20 @@ class Compiler {
 
   'list'( ast ) {
     const sequence = ast.sequence.raw
+    const variable = ast.variable
     const body = ast.body
+    const trackby = ast.track && ast.track.raw
+    let wxkey = ''
 
-    return `<block wx:for="{{ ${ sequence } }}" wx:for-item="${ ast.variable }" wx:for-index="${ ast.variable }_index">${ this.render( body ) }</block>`
+    if ( trackby ) {
+      if ( variable === trackby ) {
+        wxkey = '*this'
+      } else {
+        wxkey = trackby.split( '.' )[ 1 ]
+      }
+    }
+
+    return `<block wx:for="{{ ${ sequence } }}" wx:for-item="${ variable }" wx:for-index="${ variable }_index"${ wxkey ? ' wx:key="' + wxkey + '"' : '' }>${ this.render( body ) }</block>`
   }
 }
 

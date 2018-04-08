@@ -302,9 +302,12 @@ op.list = function(){
       this.error('can not track by ' + variable + '_key in list statement');
     }
     if(this.eat('IDENT',variable + '_index')){
-      track = true;
+      this.error('track by ' + variable + '_index is not supported');
     }else{
       track = this.expression();
+      if ( !/\w+\.\w+/.test( track.raw ) ) {
+        this.error( 'only ' + variable + '.<trackkey> is supported, <trackby> should be a key in ' + variable )
+      }
       if(track.constant){
         // true is means constant, we handle it just like xxx_index.
         track = true;
