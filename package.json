@@ -1,0 +1,31 @@
+{
+  "name": "mpregular-template-compiler",
+  "version": "0.0.0",
+  "main": "dist/mpregular-template-compiler.js",
+  "scripts": {
+    "dist": "bili --format=all",
+    "dev": "bili --format=all --watch",
+    "lint": "eslint src",
+    "precommit": "lint-staged"
+  },
+  "lint-staged": {
+    "src/**/*.js": "eslint --quiet"
+  },
+  "eslintConfig": {
+    "extends": "mo/esnext",
+    "rules": {
+      "semi": [ "error", "never" ],
+      "indent": [ "error", 2 ]
+    }
+  },
+  "author": "kaolafed",
+  "license": "MIT",
+  "devDependencies": {
+    "bili": "^0.17.4",
+    "eslint": "^3.8.1",
+    "eslint-config-mo": "latest",
+    "husky": "^0.13.3",
+    "lint-staged": "^4.0.2"
+  },
+  "dependencies": {}
+}
