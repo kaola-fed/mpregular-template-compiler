@@ -329,6 +329,8 @@ op.list = function(){
 
 
 op.expression = function(){
+  var startToken = this.ll();
+
   var expression;
   if(this.eat('@(')){ //once bind
     expression = this.expr();
@@ -337,6 +339,11 @@ op.expression = function(){
   }else{
     expression = this.expr();
   }
+
+  var endToken = this.ll();
+
+  expression.raw = this.input.slice( startToken.pos, endToken.pos )
+
   return expression;
 }
 

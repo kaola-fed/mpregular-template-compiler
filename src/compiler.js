@@ -1,9 +1,9 @@
-const TemplateParser = require( './parser/Parser' )
-const { transformTagName } = require( './helpers' )
+const Parser = require( './parser/Parser' )
+const { transformTagName, transformEventName } = require( './helpers' )
 
 class Compiler {
   compile( template, options = {} ) {
-    const tp = new TemplateParser( template, {} )
+    const tp = new Parser( template, {} )
     this.ast = tp.parse()
     this.options = options
     return this.render( this.ast )
@@ -33,11 +33,22 @@ class Compiler {
 
     const attributeStr = attrs
       .map( attr => {
+        const expr = new Parser( attr.value ).parse()
+        const value = this.render( expr )
+
+        // class
         if ( attr.name === 'class' ) {
-          return `class="_${ beforeTagName }${ attr.value ? ' ' + attr.value : '' }"`
+          return `class="_${ beforeTagName }${ attr.value ? ' ' + value : '' }"`
         }
 
-        return this.render( attr )
+        // event
+        if ( attr.name.startsWith( 'on-' ) ) {
+          const eventName = transformEventName( attr.name.slice( 3 ) )
+          return `bind${ eventName }="proxyEvent"`
+        }
+
+        // others
+        return `${ attr.name }="${ value }"`
       } )
       .join( ' ' )
 
@@ -46,16 +57,13 @@ class Compiler {
     return `<${ afterTagName }${ attributeStr ? ' ' + attributeStr : '' }>${ childrenStr }</${ afterTagName }>`
   }
 
-  attribute( ast ) {
-    return `${ ast.name }="${ ast.value }"`
-  }
-
   text( ast ) {
     return ast.text || ''
   }
 
   expression( ast ) {
-    return ast.raw || ''
+    const raw = ast.raw ? ast.raw.trim() : ''
+    return `{{ ${ raw } }}`
   }
 }
 
