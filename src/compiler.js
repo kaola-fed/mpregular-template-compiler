@@ -34,7 +34,7 @@ class Compiler {
     const attributeStr = attrs
       .map( attr => {
         if ( attr.name === 'class' ) {
-          return `class="_${ beforeTagName } ${ attr.value }"`
+          return `class="_${ beforeTagName }${ attr.value ? ' ' + attr.value : '' }"`
         }
 
         return this.render( attr )
@@ -43,7 +43,7 @@ class Compiler {
 
     const childrenStr = this.render( children )
 
-    return `<${ afterTagName } ${ attributeStr }>${ childrenStr }</${ afterTagName }>`
+    return `<${ afterTagName }${ attributeStr ? ' ' + attributeStr : '' }>${ childrenStr }</${ afterTagName }>`
   }
 
   attribute( ast ) {

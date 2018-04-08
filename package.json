@@ -6,7 +6,10 @@
     "dist": "bili --format=all",
     "dev": "bili --format=all --watch",
     "lint": "eslint src",
-    "precommit": "lint-staged"
+    "precommit": "lint-staged",
+    "test": "jest --no-cache",
+    "test:watch": "jest --no-cache --watchAll",
+    "coverage": "jest --no-cache --coverage"
   },
   "lint-staged": {
     "src/**/*.js": "eslint --quiet"
@@ -14,8 +17,14 @@
   "eslintConfig": {
     "extends": "mo/esnext",
     "rules": {
-      "semi": [ "error", "never" ],
-      "indent": [ "error", 2 ]
+      "semi": [
+        "error",
+        "never"
+      ],
+      "indent": [
+        "error",
+        2
+      ]
     }
   },
   "author": "kaolafed",
@@ -25,6 +34,7 @@
     "eslint": "^3.8.1",
     "eslint-config-mo": "latest",
     "husky": "^0.13.3",
+    "jest": "^22.4.3",
     "lint-staged": "^4.0.2"
   },
   "dependencies": {}
