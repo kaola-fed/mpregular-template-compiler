@@ -1,3 +1,4 @@
+// const clone = require( 'lodash.clonedeep' )
 const Parser = require( './parser/Parser' )
 const { transformTagName, transformEventName, errorLog } = require( './helpers' )
 const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
@@ -9,6 +10,10 @@ class Compiler {
     this.ast = tp.parse()
     this.options = options
     this.usedComponents = []
+    this.marks = {
+      eventId: 0,
+      componentId: 0,
+    }
 
     return this.imports( {
       components: this.usedComponents,
@@ -46,9 +51,13 @@ class Compiler {
   }
 
   element( ast ) {
+    // do not pollute old ast temporarily
+    // clone( ast )
+
     // transform ast when element is in registered components
     const registeredComponents = this.options.components || {}
-    if ( Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag ) ) {
+    const isComponent = Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag )
+    if ( isComponent ) {
       const definition = registeredComponents[ ast.tag ]
       ast.tag = 'template'
       const isAttr = ast.attrs.filter( attr => attr.name === 'is' )[ 0 ]
@@ -82,7 +91,7 @@ class Compiler {
       } )
     }
 
-    const attributeStr = attrs
+    let attributeStr = attrs
       .map( attr => {
         const expr = new Parser( attr.value || '' ).parse()
         const value = this.render( expr )
@@ -122,6 +131,24 @@ class Compiler {
       } )
       .filter( Boolean )
       .join( ' ' )
+
+    const needEventId = attrs.some(
+      attr => (
+        attr.name === 'r-model' ||
+        attr.name.startsWith( 'on-' ) ||
+        attr.name.startsWith( 'delegate-' ) ||
+        attr.name.startsWith( 'de-' )
+      )
+    )
+
+    if ( needEventId ) {
+      attributeStr = attributeStr + ` data-event-id="${ this.marks.eventId }" data-comp-id="{{ $cid }}"`
+      this.marks.eventId++
+
+      if ( isComponent ) {
+        // this.marks.componentId++
+      }
+    }
 
     const childrenStr = this.render( children )
 
