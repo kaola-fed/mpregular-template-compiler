@@ -54,7 +54,7 @@ class Compiler {
 
   element( ast ) {
     const beforeTagName = ast.tag || 'div'
-    const afterTagName = transformTagName( beforeTagName )
+    let afterTagName = transformTagName( beforeTagName )
     const children = ast.children || []
     // do not pollute old ast
     const attrs = clone( ast.attrs || [] )
@@ -65,8 +65,8 @@ class Compiler {
     const isComponent = Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag )
     if ( isComponent ) {
       const definition = registeredComponents[ ast.tag ]
-      // convert tag name to template
-      ast.tag = 'template'
+      // change tag name to template
+      afterTagName = 'template'
       const attr = attrs.filter( attr => attr.name === 'is' )[ 0 ]
       // `is` attr
       if ( attr ) {
@@ -84,7 +84,10 @@ class Compiler {
     }
 
     // make sure class is available ( exclude template tag )
-    if ( beforeTagName !== 'template' && !attrs.some( attr => attr.name === 'class' ) ) {
+    if (
+      afterTagName !== 'template' && // not template tag
+      !attrs.some( attr => attr.name === 'class' ) // has no class attribute
+    ) {
       attrs.unshift( {
         mdf: void 0,
         name: 'class',

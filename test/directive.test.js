@@ -17,6 +17,6 @@ test( 'r-hide with whitespace', () => {
 test( 'r-model', () => {
   assert(
     `<div r-model="{ abc }"></div>`,
-    `<view class="_div" value="{{ abc }}" bindinput="proxyEvent"></view>`
+    `<view class="_div" value="{{ abc }}" bindinput="proxyEvent" data-event-id="0" data-comp-id="{{ $cid }}"></view>`
   )
 } )
