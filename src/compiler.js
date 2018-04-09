@@ -1,5 +1,7 @@
 const Parser = require( './parser/Parser' )
 const { transformTagName, transformEventName } = require( './helpers' )
+const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
+const directives = require( './directives' )
 
 class Compiler {
   compile( template, options = {} ) {
@@ -44,12 +46,27 @@ class Compiler {
         // event
         if ( attr.name.startsWith( 'on-' ) ) {
           const eventName = transformEventName( attr.name.slice( 3 ) )
+          return `bind${ eventName }="${ PROXY_EVENT_HANDLER_NAME }"`
+        }
+
+        if ( attr.name.startsWith( 'delegate-' ) || attr.name.startsWith( 'de-' ) ) {
+          console.warn( 'delegate|de-<event> is not supported, transform to bind<event>' )
+          const eventName = transformEventName( attr.name.slice( 3 ) )
           return `bind${ eventName }="proxyEvent"`
+        }
+
+        if ( typeof directives[ attr.name ] === 'function' ) {
+          return directives[ attr.name ]( {
+            attr,
+            tag: ast,
+            value
+          } ) || ''
         }
 
         // others
         return `${ attr.name }="${ value }"`
       } )
+      .filter( Boolean )
       .join( ' ' )
 
     const childrenStr = this.render( children )

@@ -7,3 +7,7 @@ exports.transformTagName = function transformTagName( tagName ) {
 exports.transformEventName = function transformEventName( eventName ) {
   return EVENT_MAP[ eventName ] || eventName
 }
+
+exports.errorLog = function ( message ) {
+  console.error( message )
+}
