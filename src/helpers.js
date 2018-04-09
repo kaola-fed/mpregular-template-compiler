@@ -9,5 +9,5 @@ exports.transformEventName = function transformEventName( eventName ) {
 }
 
 exports.errorLog = function ( message ) {
-  console.error( message )
+  throw new Error( message )
 }

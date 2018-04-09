@@ -1,5 +1,5 @@
 const Parser = require( './parser/Parser' )
-const { transformTagName, transformEventName } = require( './helpers' )
+const { transformTagName, transformEventName, errorLog } = require( './helpers' )
 const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
 const directives = require( './directives' )
 
@@ -84,8 +84,13 @@ class Compiler {
 
     const attributeStr = attrs
       .map( attr => {
-        const expr = new Parser( attr.value ).parse()
+        const expr = new Parser( attr.value || '' ).parse()
         const value = this.render( expr )
+
+        if ( attr.name === 'isolate' ) {
+          // only two-way bind is supported
+          errorLog( 'isolate is not supported' )
+        }
 
         // class
         if ( attr.name === 'class' ) {
