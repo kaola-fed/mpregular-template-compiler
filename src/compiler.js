@@ -8,7 +8,25 @@ class Compiler {
     const tp = new Parser( template, {} )
     this.ast = tp.parse()
     this.options = options
-    return this.render( this.ast )
+    this.usedComponents = []
+
+    return this.imports( {
+      components: this.usedComponents,
+      body: this.wrap( {
+        name: options.name,
+        body: this.render( this.ast )
+      } ),
+    } )
+  }
+
+  wrap( { name, body } ) {
+    return name ?
+      `<template name="${ name }">${ body }</template>` :
+      `${ body }`
+  }
+
+  imports( { components, body } ) {
+    return components.map( c => `<import src="${ c.src }" />\n` ).join( '' ) + body
   }
 
   render( ast ) {
@@ -28,10 +46,41 @@ class Compiler {
   }
 
   element( ast ) {
+    // transform ast when element is in registered components
+    const registeredComponents = this.options.components || {}
+    if ( Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag ) ) {
+      const definition = registeredComponents[ ast.tag ]
+      ast.tag = 'template'
+      const isAttr = ast.attrs.filter( attr => attr.name === 'is' )[ 0 ]
+      if ( isAttr ) {
+        isAttr.value = definition.name
+      } else {
+        ast.attrs.unshift( {
+          mdf: void 0,
+          name: 'is',
+          type: 'attribute',
+          value: definition.name
+        } )
+      }
+      // saved for prefixing imports
+      this.usedComponents.push( definition )
+    }
+
     const beforeTagName = ast.tag || 'div'
     const afterTagName = transformTagName( beforeTagName )
     const children = ast.children || []
     const attrs = ast.attrs || []
+    const moduleId = this.options.moduleId
+
+    // make sure class is available ( exclude template tag )
+    if ( beforeTagName !== 'template' && !attrs.some( attr => attr.name === 'class' ) ) {
+      attrs.unshift( {
+        mdf: void 0,
+        name: 'class',
+        type: 'attribute',
+        value: ''
+      } )
+    }
 
     const attributeStr = attrs
       .map( attr => {
@@ -40,7 +89,7 @@ class Compiler {
 
         // class
         if ( attr.name === 'class' ) {
-          return `class="_${ beforeTagName }${ attr.value ? ' ' + value : '' }"`
+          return `class="_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }${ attr.value ? ' ' + value : '' }"`
         }
 
         // event
