@@ -1,8 +1,9 @@
-// const clone = require( 'lodash.clonedeep' )
+const clone = require( 'lodash.clonedeep' )
 const Parser = require( './parser/Parser' )
 const { transformTagName, transformEventName, errorLog } = require( './helpers' )
 const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
 const directives = require( './directives' )
+const createHistory = require( './history' )
 
 class Compiler {
   compile( template, options = {} ) {
@@ -14,6 +15,7 @@ class Compiler {
       eventId: 0,
       componentId: 0,
     }
+    this.history = createHistory()
 
     return this.imports( {
       components: this.usedComponents,
@@ -51,20 +53,26 @@ class Compiler {
   }
 
   element( ast ) {
-    // do not pollute old ast temporarily
-    // clone( ast )
+    const beforeTagName = ast.tag || 'div'
+    const afterTagName = transformTagName( beforeTagName )
+    const children = ast.children || []
+    // do not pollute old ast
+    const attrs = clone( ast.attrs || [] )
+    const moduleId = this.options.moduleId
 
     // transform ast when element is in registered components
     const registeredComponents = this.options.components || {}
     const isComponent = Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag )
     if ( isComponent ) {
       const definition = registeredComponents[ ast.tag ]
+      // convert tag name to template
       ast.tag = 'template'
-      const isAttr = ast.attrs.filter( attr => attr.name === 'is' )[ 0 ]
-      if ( isAttr ) {
-        isAttr.value = definition.name
+      const attr = attrs.filter( attr => attr.name === 'is' )[ 0 ]
+      // `is` attr
+      if ( attr ) {
+        attr.value = definition.name
       } else {
-        ast.attrs.unshift( {
+        attrs.unshift( {
           mdf: void 0,
           name: 'is',
           type: 'attribute',
@@ -74,12 +82,6 @@ class Compiler {
       // saved for prefixing imports
       this.usedComponents.push( definition )
     }
-
-    const beforeTagName = ast.tag || 'div'
-    const afterTagName = transformTagName( beforeTagName )
-    const children = ast.children || []
-    const attrs = ast.attrs || []
-    const moduleId = this.options.moduleId
 
     // make sure class is available ( exclude template tag )
     if ( beforeTagName !== 'template' && !attrs.some( attr => attr.name === 'class' ) ) {
@@ -142,12 +144,11 @@ class Compiler {
     )
 
     if ( needEventId ) {
-      attributeStr = attributeStr + ` data-event-id="${ this.marks.eventId }" data-comp-id="{{ $cid }}"`
+      // comp-id of nested component should be defined at runtime
+      const lists = this.history.search( 'list' )
+      const eventId = this.marks.eventId + lists.map( list => `-{{ ${ list.data.index } }}` ).join( '' )
+      attributeStr = attributeStr + ` data-event-id="${ eventId }" data-comp-id="{{ $cid }}"`
       this.marks.eventId++
-
-      if ( isComponent ) {
-        // this.marks.componentId++
-      }
     }
 
     const childrenStr = this.render( children )
@@ -168,12 +169,20 @@ class Compiler {
     return `<block wx:if="{{ ${ ast.test.raw } }}">${ this.render( ast.consequent ) }</block><block wx:else>${ this.render( ast.alternate ) }</block>`
   }
 
-  'list'( ast ) {
+  list( ast ) {
     const sequence = ast.sequence.raw
     const variable = ast.variable
+    const index = `${ variable }_index`
     const body = ast.body
     const trackby = ast.track && ast.track.raw
     let wxkey = ''
+
+    // maybe not supported
+    // if ( this.history.searchOne( 'list' ) ) {
+    //   errorLog( 'nested {#list}{/list} is not supported' )
+    // }
+
+    this.history.push( 'list', { variable, index } )
 
     if ( trackby ) {
       if ( variable === trackby ) {
@@ -183,7 +192,11 @@ class Compiler {
       }
     }
 
-    return `<block wx:for="{{ ${ sequence } }}" wx:for-item="${ variable }" wx:for-index="${ variable }_index"${ wxkey ? ' wx:key="' + wxkey + '"' : '' }>${ this.render( body ) }</block>`
+    const rendered = `<block wx:for="{{ ${ sequence } }}" wx:for-item="${ variable }" wx:for-index="${ index }"${ wxkey ? ' wx:key="' + wxkey + '"' : '' }>${ this.render( body ) }</block>`
+
+    this.history.pop( 'list' )
+
+    return rendered
   }
 }
 

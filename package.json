@@ -12,7 +12,10 @@
     "coverage": "jest --no-cache --coverage"
   },
   "lint-staged": {
-    "src/**/*.js": "eslint --quiet"
+    "src/**/*.js": [
+      "eslint --fix --quiet",
+      "git add"
+    ]
   },
   "eslintConfig": {
     "extends": "mo/esnext",
