@@ -1,7 +1,7 @@
 {
   "name": "mpregular-template-compiler",
   "version": "0.0.0",
-  "main": "dist/mpregular-template-compiler.js",
+  "main": "src/index.js",
   "scripts": {
     "dist": "bili --format=all",
     "dev": "bili --format=all --watch",

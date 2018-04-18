@@ -26,11 +26,12 @@ module.exports = function createHistory( initialState ) {
       return last
     },
 
-    // search from end to start
+    // search from start to end
     search( name ) {
       return this._.filter( v => v.name === name )
     },
 
+    // search from end to start
     reverseSearch( name ) {
       return this.search( name ).reverse()
     },

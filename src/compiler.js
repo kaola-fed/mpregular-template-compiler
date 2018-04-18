@@ -4,6 +4,7 @@ const { transformTagName, transformEventName, errorLog } = require( './helpers' 
 const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
 const directives = require( './directives' )
 const createHistory = require( './history' )
+const _ = require( './parser/util' )
 
 class Compiler {
   compile( template, options = {} ) {
@@ -16,14 +17,24 @@ class Compiler {
       componentId: 0,
     }
     this.history = createHistory()
+    this.usedExpressions = {
+      get: {},
+      set: {}
+    }
 
-    return this.imports( {
+    const wxml = this.imports( {
       components: this.usedComponents,
       body: this.wrap( {
         name: options.name,
         body: this.render( this.ast )
       } ),
     } )
+
+    return {
+      ast: this.ast,
+      wxml,
+      expressions: this.usedExpressions
+    }
   }
 
   wrap( { name, body } ) {
@@ -36,9 +47,19 @@ class Compiler {
     return components.map( c => `<import src="${ c.src }" />\n` ).join( '' ) + body
   }
 
-  render( ast ) {
-    console.log( ast )
+  saveExpression( expr ) {
+    /* eslint-disable */
+    if ( expr.body ) {
+      this.usedExpressions.get[ expr.body ] = new Function( _.ctxName, _.extName, _.prefix + 'return (' + expr.body + ')' )
+    }
 
+    if ( expr.setbody ) {
+      this.usedExpressions.set[ expr.setbody ] = new Function( _.ctxName, _.setName, _.extName, _.prefix + expr.setbody )
+    }
+    /* eslint-enable */
+  }
+
+  render( ast ) {
     if ( Array.isArray( ast ) ) {
       return ast
         .map( v => this.render( v ) )
@@ -64,6 +85,9 @@ class Compiler {
     const registeredComponents = this.options.components || {}
     const isComponent = Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag )
     if ( isComponent ) {
+      ast.componentId = this.marks.componentId
+      this.marks.componentId++
+
       const definition = registeredComponents[ ast.tag ]
       // change tag name to template
       afterTagName = 'template'
@@ -81,6 +105,19 @@ class Compiler {
       }
       // saved for prefixing imports
       this.usedComponents.push( definition )
+
+      const list = this.history.searchOne( 'list' )
+      const indexName = list && list.data.index
+
+      attrs.push( {
+        mdf: void 0,
+        name: 'data',
+        type: 'attribute',
+        raw: true,
+        value: indexName ?
+          `{{ ...$root[ $kk + '0-' + ${ indexName } ], $root }}` :
+          `{{ ...$root[ $kk + '0' ], $root }}`
+      } )
     }
 
     // make sure class is available ( exclude template tag )
@@ -98,8 +135,15 @@ class Compiler {
 
     let attributeStr = attrs
       .map( attr => {
-        const expr = new Parser( attr.value || '' ).parse()
-        const value = this.render( expr )
+        let value
+
+        if ( attr.raw ) {
+          // like data above, if marked as raw, do nothing
+          value = attr.value
+        } else {
+          const expr = new Parser( attr.value || '' ).parse()
+          value = this.render( expr )
+        }
 
         if ( attr.name === 'isolate' ) {
           // only two-way bind is supported
@@ -164,11 +208,15 @@ class Compiler {
   }
 
   expression( ast ) {
+    this.saveExpression( ast )
+
     const raw = ast.raw ? ast.raw.trim() : ''
     return `{{ ${ raw } }}`
   }
 
   'if'( ast ) {
+    this.saveExpression( ast.test )
+
     return `<block wx:if="{{ ${ ast.test.raw } }}">${ this.render( ast.consequent ) }</block><block wx:else>${ this.render( ast.alternate ) }</block>`
   }
 
@@ -179,6 +227,9 @@ class Compiler {
     const body = ast.body
     const trackby = ast.track && ast.track.raw
     let wxkey = ''
+
+    this.saveExpression( sequence )
+    this.saveExpression( ast.track )
 
     // maybe not supported
     // if ( this.history.searchOne( 'list' ) ) {
