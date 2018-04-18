@@ -48,6 +48,10 @@ class Compiler {
   }
 
   saveExpression( expr ) {
+    if ( !expr ) {
+      return
+    }
+
     /* eslint-disable */
     if ( expr.body ) {
       this.usedExpressions.get[ expr.body ] = new Function( _.ctxName, _.extName, _.prefix + 'return (' + expr.body + ')' )
