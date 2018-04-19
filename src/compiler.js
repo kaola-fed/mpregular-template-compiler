@@ -82,50 +82,15 @@ class Compiler {
     let afterTagName = transformTagName( beforeTagName )
     const children = ast.children || []
     // do not pollute old ast
-    const attrs = clone( ast.attrs || [] )
+    let attrs = clone( ast.attrs || [] )
     const moduleId = this.options.moduleId
 
     // transform ast when element is in registered components
     const registeredComponents = this.options.components || {}
     const isComponent = Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag )
-    if ( isComponent ) {
-      ast.componentId = this.marks.componentId
-      this.marks.componentId++
-
-      const definition = registeredComponents[ ast.tag ]
-      // change tag name to template
-      afterTagName = 'template'
-      const attr = attrs.filter( attr => attr.name === 'is' )[ 0 ]
-      // `is` attr
-      if ( attr ) {
-        attr.value = definition.name
-      } else {
-        attrs.unshift( {
-          mdf: void 0,
-          name: 'is',
-          type: 'attribute',
-          value: definition.name
-        } )
-      }
-      // saved for prefixing imports
-      this.usedComponents.push( definition )
-
-      const lists = this.history.search( 'list' )
-
-      attrs.push( {
-        mdf: void 0,
-        name: 'data',
-        type: 'attribute',
-        raw: true,
-        value: lists.length > 0 ?
-          `{{ ...$root[ $kk + '0' + ${ lists.map( list => `-{{ ${ list.data.index } }}` ).join( '' ) } ].data, $root }}` :
-          `{{ ...$root[ $kk + '0' ].data, $root }}`
-      } )
-    }
 
     // make sure class is available ( exclude template tag )
     if (
-      afterTagName !== 'template' && // not template tag
       !attrs.some( attr => attr.name === 'class' ) // has no class attribute
     ) {
       attrs.unshift( {
@@ -136,11 +101,45 @@ class Compiler {
       } )
     }
 
+    if ( isComponent ) {
+      ast.componentId = this.marks.componentId
+      this.marks.componentId++
+
+      const definition = registeredComponents[ ast.tag ]
+      // saved for prefixing imports
+      this.usedComponents.push( definition )
+
+      // change tag name to template
+      afterTagName = 'template'
+
+      // clean all attrs, we only need `is` and `data`
+      attrs = []
+
+      attrs.push( {
+        mdf: void 0,
+        name: 'is',
+        type: 'attribute',
+        value: definition.name
+      } )
+
+      const lists = this.history.search( 'list' )
+
+      attrs.push( {
+        mdf: void 0,
+        name: 'data',
+        type: 'attribute',
+        isRaw: true,
+        value: lists.length > 0 ?
+          `{{ ...$root[ $kk + '0' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ].data, $root }}` :
+          `{{ ...$root[ $kk + '0' ].data, $root }}`
+      } )
+    }
+
     let attributeStr = attrs
       .map( attr => {
         let value
 
-        if ( attr.raw ) {
+        if ( attr.isRaw ) {
           // like data above, if marked as raw, do nothing
           value = attr.value
         } else {
