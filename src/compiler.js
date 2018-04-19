@@ -103,7 +103,6 @@ class Compiler {
 
     if ( isComponent ) {
       ast.componentId = this.marks.componentId
-      this.marks.componentId++
 
       const definition = registeredComponents[ ast.tag ]
       // saved for prefixing imports
@@ -130,9 +129,11 @@ class Compiler {
         type: 'attribute',
         isRaw: true,
         value: lists.length > 0 ?
-          `{{ ...$root[ $kk + '0' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ].data, $root }}` :
-          `{{ ...$root[ $kk + '0' ].data, $root }}`
+          `{{ ...$root[ $kk + '${ this.marks.componentId }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root }}` :
+          `{{ ...$root[ $kk + '${ this.marks.componentId }' ], $root }}`
       } )
+
+      this.marks.componentId++
     }
 
     let attributeStr = attrs
