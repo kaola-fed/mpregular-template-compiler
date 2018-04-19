@@ -110,17 +110,16 @@ class Compiler {
       // saved for prefixing imports
       this.usedComponents.push( definition )
 
-      const list = this.history.searchOne( 'list' )
-      const indexName = list && list.data.index
+      const lists = this.history.search( 'list' )
 
       attrs.push( {
         mdf: void 0,
         name: 'data',
         type: 'attribute',
         raw: true,
-        value: indexName ?
-          `{{ ...$root[ $kk + '0-' + ${ indexName } ], $root }}` :
-          `{{ ...$root[ $kk + '0' ], $root }}`
+        value: lists.length > 0 ?
+          `{{ ...$root[ $kk + '0' + ${ lists.map( list => `-{{ ${ list.data.index } }}` ).join( '' ) } ].data, $root }}` :
+          `{{ ...$root[ $kk + '0' ].data, $root }}`
       } )
     }
 
