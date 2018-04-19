@@ -231,7 +231,9 @@ class Compiler {
     const trackby = ast.track && ast.track.raw
     let wxkey = ''
 
-    this.saveExpression( sequence )
+    console.log( 'sequence', ast.sequence )
+
+    this.saveExpression( ast.sequence )
     this.saveExpression( ast.track )
 
     // maybe not supported
