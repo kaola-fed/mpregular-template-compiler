@@ -111,6 +111,13 @@ class Compiler {
       // change tag name to template
       afterTagName = 'template'
 
+      // save all expression on component attrs
+      attrs.forEach( attr => {
+        const expr = new Parser( attr.value || '' ).parse()
+        // only for saving purpose
+        this.render( expr )
+      } )
+
       // clean all attrs, we only need `is` and `data`
       attrs = []
 
@@ -230,8 +237,6 @@ class Compiler {
     const body = ast.body
     const trackby = ast.track && ast.track.raw
     let wxkey = ''
-
-    console.log( 'sequence', ast.sequence )
 
     this.saveExpression( ast.sequence )
     this.saveExpression( ast.track )
