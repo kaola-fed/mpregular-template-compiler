@@ -52,7 +52,7 @@ test( 'component', () => {
 test( 'event in list', () => {
   assert(
     `{#list items as item}<div on-click="{ this.onClick($event) }"></div>{/list}`,
-    `<block wx:for="{{ items }}" wx:for-item="item" wx:for-index="item_index"><view class="_div" bindtap="proxyEvent" data-event-id="0-{{ item_index }}" data-comp-id="{{ $cid }}"></view></block>`,
+    `<block wx:for="{{ items }}" wx:for-item="item" wx:for-index="item_index"><view class="_div" bindtap="proxyEvent" data-event-id="0-{{ item_index }}" data-k="{{ $k }}"></view></block>`,
     {}
   )
 } )

@@ -204,7 +204,8 @@ class Compiler {
       // comp-id of nested component should be defined at runtime
       const lists = this.history.search( 'list' )
       const eventId = this.marks.eventId + lists.map( list => `-{{ ${ list.data.index } }}` ).join( '' )
-      attributeStr = attributeStr + ` data-event-id="${ eventId }" data-comp-id="{{ $cid }}"`
+      attributeStr = attributeStr + ` data-event-id="${ eventId }" data-k="{{ $k }}"`
+      ast.eventId = eventId
       this.marks.eventId++
     }
 
