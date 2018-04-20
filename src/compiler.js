@@ -14,7 +14,7 @@ class Compiler {
     this.usedComponents = []
     this.marks = {
       eventId: 0,
-      componentId: 0,
+      localComponentIndex: 0,
     }
     this.history = createHistory()
     this.usedExpressions = {
@@ -102,7 +102,7 @@ class Compiler {
     }
 
     if ( isComponent ) {
-      ast.componentId = this.marks.componentId
+      ast.localComponentIndex = this.marks.localComponentIndex
 
       const definition = registeredComponents[ ast.tag ]
       // saved for prefixing imports
@@ -136,11 +136,11 @@ class Compiler {
         type: 'attribute',
         isRaw: true,
         value: lists.length > 0 ?
-          `{{ ...$root[ $kk + '${ this.marks.componentId }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root }}` :
-          `{{ ...$root[ $kk + '${ this.marks.componentId }' ], $root }}`
+          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root }}` :
+          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ], $root }}`
       } )
 
-      this.marks.componentId++
+      this.marks.localComponentIndex++
     }
 
     let attributeStr = attrs
@@ -204,7 +204,7 @@ class Compiler {
       // comp-id of nested component should be defined at runtime
       const lists = this.history.search( 'list' )
       const eventId = this.marks.eventId + lists.map( list => `-{{ ${ list.data.index } }}` ).join( '' )
-      attributeStr = attributeStr + ` data-event-id="${ eventId }" data-k="{{ $k }}"`
+      attributeStr = attributeStr + ` data-event-id="${ eventId }" data-comp-id="{{ $k }}"`
       ast.eventId = eventId
       this.marks.eventId++
     }
