@@ -37,7 +37,7 @@ test( 'name', () => {
 test( 'component', () => {
   assert(
     `<div><card title="{ abc }"></card></div>`,
-    `<import src="aaa" />\n<view class="_div"><template is="bbb" title="{{ abc }}"></template></view>`,
+    `<import src="aaa" />\n<view class="_div"><template is="bbb" data="{{ ...$root[ $kk + '0' ], $root }}"></template></view>`,
     {
       components: {
         card: {
@@ -52,7 +52,7 @@ test( 'component', () => {
 test( 'event in list', () => {
   assert(
     `{#list items as item}<div on-click="{ this.onClick($event) }"></div>{/list}`,
-    `<block wx:for="{{ items }}" wx:for-item="item" wx:for-index="item_index"><view class="_div" bindtap="proxyEvent" data-event-id="0-{{ item_index }}" data-comp-id="{{ $cid }}"></view></block>`,
+    `<block wx:for="{{ items }}" wx:for-item="item" wx:for-index="item_index"><view class="_div" bindtap="proxyEvent" data-event-id="0-{{ item_index }}" data-k="{{ $k }}"></view></block>`,
     {}
   )
 } )
