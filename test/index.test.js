@@ -37,7 +37,7 @@ test( 'name', () => {
 test( 'component', () => {
   assert(
     `<div><card title="{ abc }"></card></div>`,
-    `<import src="aaa" />\n<view class="_div"><template is="bbb" title="{{ abc }}"></template></view>`,
+    `<import src="aaa" />\n<view class="_div"><template is="bbb" data="{{ ...$root[ $kk + '0' ], $root }}"></template></view>`,
     {
       components: {
         card: {
