@@ -1,6 +1,6 @@
 const clone = require( 'lodash.clonedeep' )
 const Parser = require( './parser/Parser' )
-const { transformTagName, transformEventName, errorLog } = require( './helpers' )
+const { transformTagName, transformEventName, nanoid } = require( './helpers' )
 const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
 const directives = require( './directives' )
 const createHistory = require( './history' )
@@ -15,6 +15,7 @@ class Compiler {
     this.marks = {
       eventId: 0,
       localComponentIndex: 0,
+      defaultSlotIndex: 0,
     }
     this.history = createHistory()
     this.usedExpressions = {
@@ -22,19 +23,53 @@ class Compiler {
       set: {}
     }
 
+    // parent should be component
+    this.usedSlots = {
+      default: {}
+    }
+
+    // mark whether need prefix `<import src="slots">`
+    this.hasInclude = false
+
+    const rendered = this.render( this.ast )
+
     const wxml = this.imports( {
+      prefix: this.hasInclude ? `<import src="slots">` : '',
       components: this.usedComponents,
       body: this.wrap( {
         name: options.name,
-        body: this.render( this.ast )
+        body: rendered
       } ),
     } )
 
+    const slots = this.renderSlots( this.usedSlots )
+
+    const imports = this.imports( {
+      prefix: '',
+      components: this.usedComponents,
+      body: ''
+    } )
+
     return {
+      // save components for those components used in slot
+      components: this.usedComponents, // provided, but maybe not used
+      imports,
+      rawSlots: this.usedSlots, // provided, but maybe not used
+      slots,
       ast: this.ast,
       wxml,
       expressions: this.usedExpressions
     }
+  }
+
+  renderSlots( slots ) {
+    const defaultSlotMap = slots.default
+    return Object.keys( defaultSlotMap ).map( slotId => {
+      return this.wrap( {
+        name: slotId,
+        body: defaultSlotMap[ slotId ]
+      } )
+    } ).join( '\n' )
   }
 
   wrap( { name, body } ) {
@@ -43,8 +78,8 @@ class Compiler {
       `${ body }`
   }
 
-  imports( { components, body } ) {
-    return components.map( c => `<import src="${ c.src }" />\n` ).join( '' ) + body
+  imports( { prefix = '', components, body } ) {
+    return prefix + components.map( c => `<import src="${ c.src }" />\n` ).join( '' ) + body
   }
 
   saveExpression( expr ) {
@@ -74,7 +109,15 @@ class Compiler {
       return this[ ast.type ]( ast )
     }
 
-    throw new Error( 'unexpected ast type', ast.type )
+    throw new Error( 'unexpected ast type "' + ast.type + '"' )
+  }
+
+  template( ast ) {
+    this.hasInclude = true
+    this.saveExpression( ast.content )
+    // use parent data ($p)
+    // import all slots first, who use this will give the $slot value
+    return '<template is="{{ $defaultSlot }}" data="{{ ...$root[ $p ], $root }}"><template>'
   }
 
   element( ast ) {
@@ -101,12 +144,22 @@ class Compiler {
       } )
     }
 
+    let hasSlot = false
+
+    if ( isComponent && children && children.length > 0 ) {
+      hasSlot = true
+    }
+
+    const defaultSlotId = nanoid()
+
     if ( isComponent ) {
       ast.localComponentIndex = this.marks.localComponentIndex
 
       const definition = registeredComponents[ ast.tag ]
       // saved for prefixing imports
-      this.usedComponents.push( definition )
+      if ( !~this.usedComponents.indexOf( definition ) ) {
+        this.usedComponents.push( definition )
+      }
 
       // change tag name to template
       afterTagName = 'template'
@@ -136,8 +189,8 @@ class Compiler {
         type: 'attribute',
         isRaw: true,
         value: lists.length > 0 ?
-          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root }}` :
-          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ], $root }}`
+          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root, $defaultSlot: "${ hasSlot ? defaultSlotId : 'defaultSlot' }" }}` :
+          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ], $root, $defaultSlot: "${ hasSlot ? defaultSlotId : 'defaultSlot' }" }}`
       } )
 
       this.marks.localComponentIndex++
@@ -155,11 +208,6 @@ class Compiler {
           value = this.render( expr )
         }
 
-        if ( attr.name === 'isolate' ) {
-          // only two-way bind is supported
-          errorLog( 'isolate is not supported' )
-        }
-
         // class
         if ( attr.name === 'class' ) {
           return `class="_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }${ attr.value ? ' ' + value : '' }"`
@@ -172,7 +220,7 @@ class Compiler {
         }
 
         if ( attr.name.startsWith( 'delegate-' ) || attr.name.startsWith( 'de-' ) ) {
-          console.warn( 'delegate|de-<event> is not supported, transform to bind<event>' )
+          console.warn( 'delegate|de-<event> is not supported, transpiled to bind<event> automatically' )
           const eventName = transformEventName( attr.name.slice( 3 ) )
           return `bind${ eventName }="proxyEvent"`
         }
@@ -211,7 +259,11 @@ class Compiler {
 
     const childrenStr = this.render( children )
 
-    return `<${ afterTagName }${ attributeStr ? ' ' + attributeStr : '' }>${ childrenStr }</${ afterTagName }>`
+    if ( hasSlot ) {
+      this.usedSlots.default[ defaultSlotId ] = childrenStr
+    }
+
+    return `<${ afterTagName }${ attributeStr ? ' ' + attributeStr : '' }>${ isComponent ? '' : childrenStr }</${ afterTagName }>`
   }
 
   text( ast ) {

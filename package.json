@@ -3,8 +3,8 @@
   "version": "0.0.8",
   "main": "src/index.js",
   "scripts": {
-    "dist": "bili --format=all",
-    "dev": "bili --format=all --watch",
+    "dist": "bili --format umd --moduleName=compile --target=browser",
+    "dev": "bili --format umd --moduleName=compile --target=browser --watch",
     "lint": "eslint src",
     "precommit": "lint-staged",
     "test": "jest --no-cache",
@@ -33,7 +33,7 @@
   "author": "kaolafed",
   "license": "MIT",
   "devDependencies": {
-    "bili": "^0.17.4",
+    "bili": "3.0.0",
     "eslint": "^3.8.1",
     "eslint-config-mo": "latest",
     "husky": "^0.13.3",
@@ -41,6 +41,7 @@
     "lint-staged": "^4.0.2"
   },
   "dependencies": {
-    "lodash.clonedeep": "^4.5.0"
+    "lodash.clonedeep": "^4.5.0",
+    "nanoid": "^1.0.2"
   }
 }

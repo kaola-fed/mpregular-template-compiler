@@ -245,7 +245,14 @@ op.interplation = function(){
 
 // {{~}}
 op.inc = op.include = function(){
-  this.error( 'include directive is not supported' )
+  var content = this.expression();
+  
+  if ( content.raw !== 'this.$body' ) {
+    this.error( 'only {#inc this.$body} is supported currently' )
+  }
+
+  this.match('END');
+  return node.template(content);
 }
 
 // {{#if}}

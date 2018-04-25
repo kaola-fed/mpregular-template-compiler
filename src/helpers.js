@@ -11,3 +11,14 @@ exports.transformEventName = function transformEventName( eventName ) {
 exports.errorLog = function ( message ) {
   throw new Error( message )
 }
+
+const isNode = typeof process !== 'undefined' && ( String( process ) ) === '[object process]'
+
+exports.nanoid = function () {
+  if ( isNode ) {
+    return require( 'nanoid' )()
+  }
+  const format = require( 'nanoid/format' )
+  const random = require( 'nanoid/random-browser' )
+  return format( random, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_~', 10 )
+}
