@@ -117,7 +117,7 @@ class Compiler {
     this.saveExpression( ast.content )
     // use parent data ($p)
     // import all slots first, who use this will give the $slot value
-    return '<template is="{{ $defaultSlot }}" data="{{ ...$root[ $p ], $root }}"><template>'
+    return '<template is="{{ $defaultSlot }}" data="{{ ...$root[ $p ], $root }}"></template>'
   }
 
   element( ast ) {
@@ -189,8 +189,8 @@ class Compiler {
         type: 'attribute',
         isRaw: true,
         value: lists.length > 0 ?
-          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root, $defaultSlot: "${ hasSlot ? defaultSlotId : 'defaultSlot' }" }}` :
-          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ], $root, $defaultSlot: "${ hasSlot ? defaultSlotId : 'defaultSlot' }" }}`
+          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}` :
+          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}`
       } )
 
       this.marks.localComponentIndex++
