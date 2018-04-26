@@ -215,8 +215,16 @@ class Compiler {
 
         // event
         if ( attr.name.startsWith( 'on-' ) ) {
+          // modifier: capture | catch | capture-catch
+          const modifier = attr.mdf
           const eventName = transformEventName( attr.name.slice( 3 ) )
-          return `bind${ eventName }="${ PROXY_EVENT_HANDLER_NAME }"`
+          const map = {
+            capture: 'capture-bind:',
+            catch: 'catch',
+            'capture-catch': 'capture-catch:'
+          }
+          const eventPrefix = ( modifier && map[ modifier ] ) ? map[ modifier ] : 'bind'
+          return `${ eventPrefix }${ eventName }="${ PROXY_EVENT_HANDLER_NAME }"`
         }
 
         if ( attr.name.startsWith( 'delegate-' ) || attr.name.startsWith( 'de-' ) ) {
