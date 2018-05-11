@@ -28,13 +28,13 @@ class Compiler {
       default: {}
     }
 
-    // mark whether need prefix `<import src="slots">`
+    // mark whether need prefix `<import src="slots" />`
     this.hasInclude = false
 
     const rendered = this.render( this.ast )
 
     const wxml = this.imports( {
-      prefix: this.hasInclude ? `<import src="slots">` : '',
+      prefix: this.hasInclude ? `<import src="slots" />` : '',
       components: this.usedComponents,
       body: this.wrap( {
         name: options.name,
