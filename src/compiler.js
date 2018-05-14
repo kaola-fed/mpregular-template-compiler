@@ -166,7 +166,13 @@ class Compiler {
 
       // save all expression on component attrs
       attrs.forEach( attr => {
-        const expr = new Parser( attr.value || '' ).parse()
+        let expr = attr.value || ''
+
+        // parse string to ast
+        if ( typeof expr === 'string' ) {
+          expr = new Parser( expr ).parse()
+        }
+
         // only for saving purpose
         this.render( expr )
       } )
@@ -204,7 +210,13 @@ class Compiler {
           // like data above, if marked as raw, do nothing
           value = attr.value
         } else {
-          const expr = new Parser( attr.value || '' ).parse()
+          let expr = attr.value || ''
+
+          // parse string to ast
+          if ( typeof expr === 'string' ) {
+            expr = new Parser( expr ).parse()
+          }
+
           value = this.render( expr )
         }
 
