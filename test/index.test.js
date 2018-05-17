@@ -14,6 +14,13 @@ test( 'insert class if not exist', () => {
   )
 } )
 
+test( 'a[href] should be converted to navigator[url]', () => {
+  assert(
+    `<a href="https://m.kaola.com"></a>`,
+    `<navigator class="_a" url="https://m.kaola.com"></navigator>`
+  )
+} )
+
 test( 'moduleId', () => {
   assert(
     `<div></div>`,
@@ -37,7 +44,7 @@ test( 'name', () => {
 test( 'component', () => {
   assert(
     `<div><card title="{ abc }"></card></div>`,
-    `<import src="aaa" />\n<view class="_div"><template is="bbb" data="{{ ...$root[ $kk + '0' ], $root }}"></template></view>`,
+    `<import src="aaa" />\n<view class="_div"><template is="bbb" data="{{ ...$root[ $kk + '0' ], $root, $defaultSlot: 'defaultSlot' }}"></template></view>`,
     {
       components: {
         card: {

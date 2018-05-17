@@ -225,6 +225,11 @@ class Compiler {
           return `class="_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }${ attr.value ? ' ' + value : '' }"`
         }
 
+        // a[href] -> navigator[url]
+        if ( beforeTagName === 'a' && attr.name === 'href' ) {
+          return attr.value ? `url="${ value }"` : ''
+        }
+
         // event
         if ( attr.name.startsWith( 'on-' ) ) {
           // modifier: capture | catch | capture-catch
