@@ -16,6 +16,7 @@ class Compiler {
       eventId: 0,
       localComponentIndex: 0,
       defaultSlotIndex: 0,
+      rhtmlId: 0,
     }
     this.history = createHistory()
     this.usedExpressions = {
@@ -30,11 +31,17 @@ class Compiler {
 
     // mark whether need prefix `<import src="slots" />`
     this.hasInclude = false
+    // mark whether need prefix `<import src="../wxparse/index" />`, global
+    this.hasRhtml = false
 
     const rendered = this.render( this.ast )
 
+    let prefix = ''
+    prefix = prefix + ( this.hasInclude ? `<import src="slots" />\n` : '' )
+    prefix = prefix + ( this.hasRhtml ? `<import src="../wxparse/index" />\n` : '' )
+
     const wxml = this.imports( {
-      prefix: this.hasInclude ? `<import src="slots" />` : '',
+      prefix,
       components: this.usedComponents,
       body: this.wrap( {
         name: options.name,
@@ -173,7 +180,7 @@ class Compiler {
           expr = new Parser( expr ).parse()
         }
 
-        // only for saving purpose
+        // only for saving expression purpose
         this.render( expr )
       } )
 
@@ -202,6 +209,9 @@ class Compiler {
       this.marks.localComponentIndex++
     }
 
+    // maybe attrs have two or more `r-hrml`s
+    let hasRhtml = false
+
     let attributeStr = attrs
       .map( attr => {
         let value
@@ -223,6 +233,11 @@ class Compiler {
         // class
         if ( attr.name === 'class' ) {
           return `class="_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }${ attr.value ? ' ' + value : '' }"`
+        }
+
+        if ( attr.name === 'r-html' ) {
+          hasRhtml = true
+          return ''
         }
 
         // a[href] -> navigator[url]
@@ -282,10 +297,30 @@ class Compiler {
       this.marks.eventId++
     }
 
-    const childrenStr = this.render( children )
+    // always execute render to save slots and expression
+    let childrenStr = this.render( children )
 
     if ( hasSlot ) {
       this.usedSlots.default[ defaultSlotId ] = childrenStr
+    }
+
+    // override children with r-html content
+    /* @example
+      <div r-html="{ foo }"></div>
+      ->
+      <div>
+        <template is="wxParse" data="{{ wxParseData: __wxparsed[ '0' + '-' + item_index + '-' + item2_index ] ? __wxparsed[ '0' + '-' + item_index + '-' + item2_index ].nodes : [] }}"></template>
+      </div>
+    */
+    if ( hasRhtml ) {
+      const lists = this.history.search( 'list' )
+      const keypath = this.marks.rhtmlId + ' ' + lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
+
+      childrenStr = `<template is="wxParse" data="{{ wxParseData: __wxparsed[ ${ keypath } ] ? __wxparsed[ ${ keypath } ].nodes : [] }}"></template>`
+
+      this.marks.rhtmlId++
+      // for prefixing `import` after render complete
+      this.hasRhtml = true
     }
 
     return `<${ afterTagName }${ attributeStr ? ' ' + attributeStr : '' }>${ isComponent ? '' : childrenStr }</${ afterTagName }>`
