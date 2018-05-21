@@ -318,6 +318,7 @@ class Compiler {
 
       childrenStr = `<template is="wxParse" data="{{ wxParseData: __wxparsed[ ${ keypath } ] ? __wxparsed[ ${ keypath } ].nodes : [] }}"></template>`
 
+      ast.rhtmlId = this.marks.rhtmlId
       this.marks.rhtmlId++
       // for prefixing `import` after render complete
       this.hasRhtml = true
