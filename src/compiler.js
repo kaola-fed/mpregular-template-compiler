@@ -17,6 +17,7 @@ class Compiler {
       localComponentIndex: 0,
       defaultSlotIndex: 0,
       rhtmlId: 0,
+      filterId: 0,
     }
     this.history = createHistory()
     this.usedExpressions = {
@@ -334,6 +335,17 @@ class Compiler {
   expression( ast ) {
     this.saveExpression( ast )
 
+    const hasFilters = ast.filters && ast.filters.length > 0
+
+    if ( hasFilters ) {
+      const lists = this.history.search( 'list' )
+      const keypath = this.marks.filterId + ' ' + lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
+
+      ast.filterId = this.marks.filterId
+      this.marks.filterId++
+
+      return `{{ __filteredValues[ ${ keypath } ] }}`
+    }
     const raw = ast.raw ? ast.raw.trim() : ''
     return `{{ ${ raw } }}`
   }
