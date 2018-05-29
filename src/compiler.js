@@ -335,9 +335,9 @@ class Compiler {
   expression( ast ) {
     this.saveExpression( ast )
 
-    const hasFilters = ast.filters && ast.filters.length > 0
+    const hasFilter = ast.hasFilter
 
-    if ( hasFilters ) {
+    if ( hasFilter ) {
       const lists = this.history.search( 'list' )
       const keypath = this.marks.filterId + ' ' + lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
 

@@ -33,13 +33,14 @@ module.exports = {
       track: track
     }
   },
-  expression: function( body, setbody, constant, filters ){
+  expression: function( body, setbody, constant, filters, hasFilter ){
     return {
       type: "expression",
       body: body,
       constant: constant || false,
       setbody: setbody || false,
-      filters: filters
+      filters: filters,
+      hasFilter: !!hasFilter,
     }
   },
   // {~ <div>{name}</div>}

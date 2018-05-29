@@ -364,7 +364,7 @@ op.expr = function(){
 
   var body = buffer.get || buffer;
   var setbody = buffer.set;
-  return node.expression(body, setbody, !this.depend.length, buffer.filters);
+  return node.expression(body, setbody, !this.depend.length, buffer.filters, buffer.hasFilter);
 }
 
 
@@ -417,6 +417,7 @@ op.filter = function(){
     // the set function is depend on the filter definition. if it have set method, the set will work
     var ret = getset(get, set);
     ret.filters = filters;
+    ret.hasFilter = true
     return ret;
   }
   return left;
