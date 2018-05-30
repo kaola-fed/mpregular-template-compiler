@@ -140,12 +140,21 @@ class Compiler {
     const isComponent = Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag )
 
     // use origin ast for modification purpose
-    // 1. add holderId
-    // 2. save all expression
     ast.attrs.forEach( attr => {
-      const expr = attr.value || []
-      // only for saving expression purpose
-      this.render( expr )
+      const expr = attr.value || ''
+
+      let holders = []
+      if ( typeof expr === 'string' ) {
+        holders = new Parser( expr, { mode: 2 } ).parse() || []
+      }
+
+      // 1. add holderId
+      // 2. save all expressions
+      this.render( holders )
+
+      // mount holders
+      attr.holdersForRender = holders
+      attr.holders = holders.filter( holder => holder.type === 'expression' )
     } )
 
     // clone after holderId is attached, we can use holderId later
@@ -159,7 +168,7 @@ class Compiler {
         mdf: void 0,
         name: 'class',
         type: 'attribute',
-        value: []
+        value: ''
       } )
     }
 
@@ -190,9 +199,7 @@ class Compiler {
         mdf: void 0,
         name: 'is',
         type: 'attribute',
-        value: [
-          { type: 'text', text: definition.name }
-        ]
+        value: definition.name
       } )
 
       const lists = this.history.search( 'list' )
@@ -200,15 +207,11 @@ class Compiler {
       attrs.push( {
         mdf: void 0,
         name: 'data',
+        isRaw: true,
         type: 'attribute',
-        value: [
-          {
-            type: 'text',
-            text: lists.length > 0 ?
-              `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}` :
-              `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}`
-          }
-        ]
+        value: lists.length > 0 ?
+          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}` :
+          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}`
       } )
 
       this.marks.localComponentIndex++
@@ -221,11 +224,18 @@ class Compiler {
       .map( attr => {
         let value
 
-        // if not parsed correctly, use raw string
-        if ( typeof attr.value === 'string' ) {
+        // if marked as isRaw, like `data` above
+        if ( attr.isRaw ) {
           value = attr.value
         } else {
-          const expr = attr.value || []
+          let expr = attr.value || ''
+
+          // use holdersForRender here
+          if ( typeof expr === 'string' ) {
+            // class's holdersForRender is undefined
+            expr = attr.holdersForRender || []
+          }
+
           value = this.render( expr )
         }
 
@@ -277,6 +287,11 @@ class Compiler {
       } )
       .filter( Boolean )
       .join( ' ' )
+
+    // cleanup holdersForRender
+    ast.attrs.forEach( attr => {
+      delete attr.holdersForRender
+    } )
 
     const needEventId = attrs.some(
       attr => (

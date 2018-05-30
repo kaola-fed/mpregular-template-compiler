@@ -172,9 +172,6 @@ op.xentity = function(ll){
 
     }
     if( this.eat("=") ) value = this.attvalue(modifier);
-    if( typeof value === 'string' ) {
-        value = new Parser( value, { mode: 2 } ).parse() || []
-    }
     return node.attribute( name, value, modifier );
   }else{
     if( name !== 'if') this.error("current version. ONLY RULE #if #else #elseif is valid in tag, the rule #" + name + ' is invalid');
