@@ -33,7 +33,7 @@ module.exports = {
       track: track
     }
   },
-  expression: function( body, setbody, constant, filters, hasFilter ){
+  expression: function( body, setbody, constant, filters, hasFilter, hasCallExpression ){
     return {
       type: "expression",
       body: body,
@@ -41,6 +41,7 @@ module.exports = {
       setbody: setbody || false,
       filters: filters,
       hasFilter: !!hasFilter,
+      hasCallExpression: !!hasCallExpression,
     }
   },
   // {~ <div>{name}</div>}

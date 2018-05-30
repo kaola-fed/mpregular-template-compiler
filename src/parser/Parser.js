@@ -172,6 +172,9 @@ op.xentity = function(ll){
 
     }
     if( this.eat("=") ) value = this.attvalue(modifier);
+    if( typeof value === 'string' ) {
+        value = new Parser( value, { mode: 2 } ).parse() || []
+    }
     return node.attribute( name, value, modifier );
   }else{
     if( name !== 'if') this.error("current version. ONLY RULE #if #else #elseif is valid in tag, the rule #" + name + ' is invalid');
@@ -360,11 +363,25 @@ op.expression = function(){
 op.expr = function(){
   this.depend = [];
 
+  // reset
+  this.hasCallExpression = false
+
   var buffer = this.filter()
 
   var body = buffer.get || buffer;
   var setbody = buffer.set;
-  return node.expression(body, setbody, !this.depend.length, buffer.filters, buffer.hasFilter);
+  var generated = node.expression(
+    body,
+    setbody,
+    !this.depend.length,
+    buffer.filters,
+    buffer.hasFilter,
+    this.hasCallExpression
+  );
+
+  this.hasCallExpression = false
+
+  return generated
 }
 
 
@@ -617,6 +634,9 @@ op.member = function(base, last, pathes, prevBase){
 
         base =  base+"(" + args +")";
         this.match(')')
+
+        this.hasCallExpression = true
+
         return this.member(base, null, pathes);
     }
   }

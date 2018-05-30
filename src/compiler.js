@@ -17,7 +17,7 @@ class Compiler {
       localComponentIndex: 0,
       defaultSlotIndex: 0,
       rhtmlId: 0,
-      filterId: 0,
+      holderId: 0,
     }
     this.history = createHistory()
     this.usedExpressions = {
@@ -133,12 +133,23 @@ class Compiler {
     let afterTagName = transformTagName( beforeTagName )
     const children = ast.children || []
     // do not pollute old ast
-    let attrs = clone( ast.attrs || [] )
     const moduleId = this.options.moduleId
 
     // transform ast when element is in registered components
     const registeredComponents = this.options.components || {}
     const isComponent = Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag )
+
+    // use origin ast for modification purpose
+    // 1. add holderId
+    // 2. save all expression
+    ast.attrs.forEach( attr => {
+      const expr = attr.value || []
+      // only for saving expression purpose
+      this.render( expr )
+    } )
+
+    // clone after holderId is attached, we can use holderId later
+    let attrs = clone( ast.attrs || [] )
 
     // make sure class is available ( exclude template tag )
     if (
@@ -148,7 +159,7 @@ class Compiler {
         mdf: void 0,
         name: 'class',
         type: 'attribute',
-        value: ''
+        value: []
       } )
     }
 
@@ -172,19 +183,6 @@ class Compiler {
       // change tag name to template
       afterTagName = 'template'
 
-      // save all expression on component attrs
-      attrs.forEach( attr => {
-        let expr = attr.value || ''
-
-        // parse string to ast
-        if ( typeof expr === 'string' ) {
-          expr = new Parser( expr ).parse()
-        }
-
-        // only for saving expression purpose
-        this.render( expr )
-      } )
-
       // clean all attrs, we only need `is` and `data`
       attrs = []
 
@@ -192,7 +190,9 @@ class Compiler {
         mdf: void 0,
         name: 'is',
         type: 'attribute',
-        value: definition.name
+        value: [
+          { type: 'text', text: definition.name }
+        ]
       } )
 
       const lists = this.history.search( 'list' )
@@ -201,10 +201,14 @@ class Compiler {
         mdf: void 0,
         name: 'data',
         type: 'attribute',
-        isRaw: true,
-        value: lists.length > 0 ?
-          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}` :
-          `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}`
+        value: [
+          {
+            type: 'text',
+            text: lists.length > 0 ?
+              `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ${ lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' ) } ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}` :
+              `{{ ...$root[ $kk + '${ this.marks.localComponentIndex }' ], $root, $defaultSlot: '${ hasSlot ? defaultSlotId : 'defaultSlot' }' }}`
+          }
+        ]
       } )
 
       this.marks.localComponentIndex++
@@ -217,17 +221,11 @@ class Compiler {
       .map( attr => {
         let value
 
-        if ( attr.isRaw ) {
-          // like data above, if marked as raw, do nothing
+        // if not parsed correctly, use raw string
+        if ( typeof attr.value === 'string' ) {
           value = attr.value
         } else {
-          let expr = attr.value || ''
-
-          // parse string to ast
-          if ( typeof expr === 'string' ) {
-            expr = new Parser( expr ).parse()
-          }
-
+          const expr = attr.value || []
           value = this.render( expr )
         }
 
@@ -336,16 +334,23 @@ class Compiler {
     this.saveExpression( ast )
 
     const hasFilter = ast.hasFilter
+    const hasCallExpression = ast.hasCallExpression
 
-    if ( hasFilter ) {
+    if ( hasFilter || hasCallExpression ) {
+      // maybe already added before
+      if ( typeof ast.holderId === 'undefined' ) {
+        ast.holderId = this.marks.holderId
+        this.marks.holderId++
+      }
+
       const lists = this.history.search( 'list' )
-      const keypath = this.marks.filterId + ' ' + lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
+      const keypath = ast.holderId +
+        ( lists.length > 0 ? ' ' : '' ) +
+        lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
 
-      ast.filterId = this.marks.filterId
-      this.marks.filterId++
-
-      return `{{ __filteredValues[ ${ keypath } ] }}`
+      return `{{ __holders[ ${ keypath } ] }}`
     }
+
     const raw = ast.raw ? ast.raw.trim() : ''
     return `{{ ${ raw } }}`
   }
