@@ -4,6 +4,7 @@ const { transformTagName, transformEventName, nanoid } = require( './helpers' )
 const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
 const directives = require( './directives' )
 const createHistory = require( './history' )
+const node = require( './parser/node' )
 const _ = require( './parser/util' )
 
 class Compiler {
@@ -146,6 +147,23 @@ class Compiler {
       let holders = []
       if ( typeof expr === 'string' ) {
         holders = new Parser( expr, { mode: 2 } ).parse() || []
+      }
+
+      const onlySingleExpr = holders.length === 1 && holders[ 0 ].type === 'expression'
+      if ( !onlySingleExpr ) {
+        let constant = true
+        const body = []
+        holders.forEach( function ( item ) {
+          if ( !item.constant ) {
+            constant = false
+          }
+
+          // silent the mutiple inteplation
+          body.push( item.body || '\'' + item.text.replace( /'/g, '\\\'' ) + '\'' )
+        } )
+        this.saveExpression(
+          node.expression( '[' + body.join( ',' ) + '].join(\'\')', null, constant )
+        )
       }
 
       // 1. add holderId
@@ -350,6 +368,9 @@ class Compiler {
 
     const hasFilter = ast.hasFilter
     const hasCallExpression = ast.hasCallExpression
+
+    delete ast.hasFilter
+    delete ast.hasCallExpression
 
     if ( hasFilter || hasCallExpression ) {
       // maybe already added before
