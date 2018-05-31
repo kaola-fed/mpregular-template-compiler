@@ -147,6 +147,10 @@ class Compiler {
       let holders = []
       if ( typeof expr === 'string' ) {
         holders = new Parser( expr, { mode: 2 } ).parse() || []
+      } else if ( expr && expr.type === 'expression' ) {
+        // <test attr={ value } />
+        // without double quotes, expression has already been parsed in parser phase
+        holders = [ expr ]
       }
 
       const onlySingleExpr = holders.length === 1 && holders[ 0 ].type === 'expression'
@@ -172,7 +176,12 @@ class Compiler {
 
       // mount holders
       attr.holdersForRender = holders
-      attr.holders = holders.filter( holder => holder.type === 'expression' )
+      attr.holders = holders.filter( holder => {
+        return holder.type === 'expression' &&
+          (
+            holder.hasFilter || holder.hasCallExpression || typeof holder.holderId !== 'undefined'
+          )
+      } )
     } )
 
     // clone after holderId is attached, we can use holderId later
