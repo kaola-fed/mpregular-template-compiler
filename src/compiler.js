@@ -186,6 +186,7 @@ class Compiler {
         mdf: void 0,
         name: 'class',
         type: 'attribute',
+        isRaw: true,
         value: ''
       } )
     }
@@ -216,6 +217,7 @@ class Compiler {
       attrs.push( {
         mdf: void 0,
         name: 'is',
+        isRaw: true,
         type: 'attribute',
         value: definition.name
       } )
@@ -246,12 +248,12 @@ class Compiler {
         if ( attr.isRaw ) {
           value = attr.value
         } else {
-          let expr = attr.value || ''
+          let expr = attr.value || []
 
-          // use holdersForRender here
-          if ( typeof expr === 'string' ) {
+          // prefer holdersForRender here
+          if ( Array.isArray( attr.holdersForRender ) ) {
             // class's holdersForRender is undefined
-            expr = attr.holdersForRender || []
+            expr = attr.holdersForRender
           }
 
           value = this.render( expr )
