@@ -372,7 +372,7 @@ class Compiler {
     delete ast.hasFilter
     delete ast.hasCallExpression
 
-    if ( hasFilter || hasCallExpression ) {
+    if ( hasFilter || hasCallExpression || typeof ast.holderId !== 'undefined' ) {
       // maybe already added before
       if ( typeof ast.holderId === 'undefined' ) {
         ast.holderId = this.marks.holderId
