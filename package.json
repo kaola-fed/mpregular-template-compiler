@@ -1,6 +1,6 @@
 {
   "name": "mpregular-template-compiler",
-  "version": "0.0.24",
+  "version": "0.0.25",
   "main": "src/index.js",
   "scripts": {
     "dist": "bili --format umd --moduleName=compile --target=browser",
