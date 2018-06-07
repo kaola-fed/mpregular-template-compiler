@@ -372,7 +372,6 @@ class Compiler {
   }
 
   expression( ast ) {
-    console.log( ast.raw, ast.holderId )
     this.saveExpression( ast )
 
     // const hasFilter = ast.hasFilter
@@ -401,7 +400,7 @@ class Compiler {
   }
 
   list( ast ) {
-    const sequence = ast.sequence.raw
+    const sequence = this.render( ast.sequence )
     const variable = ast.variable
     const index = `${ variable }_index`
     const body = ast.body
@@ -426,7 +425,7 @@ class Compiler {
       }
     }
 
-    const rendered = `<block wx:for="{{ ${ sequence } }}" wx:for-item="${ variable }" wx:for-index="${ index }"${ wxkey ? ' wx:key="' + wxkey + '"' : '' }>${ this.render( body ) }</block>`
+    const rendered = `<block wx:for="${ sequence }" wx:for-item="${ variable }" wx:for-index="${ index }"${ wxkey ? ' wx:key="' + wxkey + '"' : '' }>${ this.render( body ) }</block>`
 
     this.history.pop( 'list' )
 
