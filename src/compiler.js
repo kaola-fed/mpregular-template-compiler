@@ -177,10 +177,7 @@ class Compiler {
       // mount holders
       attr.holdersForRender = holders
       attr.holders = holders.filter( holder => {
-        return holder.type === 'expression' &&
-          (
-            holder.hasFilter || holder.hasCallExpression || typeof holder.holderId !== 'undefined'
-          )
+        return holder.type === 'expression'
       } )
     } )
 
@@ -375,31 +372,26 @@ class Compiler {
   }
 
   expression( ast ) {
+    console.log( ast.raw, ast.holderId )
     this.saveExpression( ast )
 
-    const hasFilter = ast.hasFilter
-    const hasCallExpression = ast.hasCallExpression
+    // const hasFilter = ast.hasFilter
+    // const hasCallExpression = ast.hasCallExpression
 
     delete ast.hasFilter
     delete ast.hasCallExpression
 
-    if ( hasFilter || hasCallExpression || typeof ast.holderId !== 'undefined' ) {
-      // maybe already added before
-      if ( typeof ast.holderId === 'undefined' ) {
-        ast.holderId = this.marks.holderId
-        this.marks.holderId++
-      }
-
-      const lists = this.history.search( 'list' )
-      const keypath = ast.holderId +
-        ( lists.length > 0 ? ' ' : '' ) +
-        lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
-
-      return `{{ __holders[ ${ keypath } ] }}`
+    if ( typeof ast.holderId === 'undefined' ) {
+      ast.holderId = this.marks.holderId
+      this.marks.holderId++
     }
 
-    const raw = ast.raw ? ast.raw.trim() : ''
-    return `{{ ${ raw } }}`
+    const lists = this.history.search( 'list' )
+    const keypath = ast.holderId +
+      ( lists.length > 0 ? ' ' : '' ) +
+      lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
+
+    return `{{ __holders[ ${ keypath } ] }}`
   }
 
   'if'( ast ) {
