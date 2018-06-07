@@ -394,9 +394,10 @@ class Compiler {
   }
 
   'if'( ast ) {
+    const condition = this.render( ast.test )
     this.saveExpression( ast.test )
 
-    return `<block wx:if="{{ ${ ast.test.raw } }}">${ this.render( ast.consequent ) }</block><block wx:else>${ this.render( ast.alternate ) }</block>`
+    return `<block wx:if="${ condition }">${ this.render( ast.consequent ) }</block><block wx:else>${ this.render( ast.alternate ) }</block>`
   }
 
   list( ast ) {
