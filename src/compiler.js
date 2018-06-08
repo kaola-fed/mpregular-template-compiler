@@ -179,6 +179,18 @@ class Compiler {
       attr.holders = holders.filter( holder => {
         return holder.type === 'expression'
       } )
+
+      // holderId should not appear in component attrs
+      // to ensure extra data will not be passed to setData
+      // for performance purpose :)
+      if ( isComponent ) {
+        if ( expr && expr.type === 'expression' ) {
+          delete expr.holderId
+        }
+
+        // remove unused holders to keep bundle slim
+        delete attr.holders
+      }
     } )
 
     // clone after holderId is attached, we can use holderId later
