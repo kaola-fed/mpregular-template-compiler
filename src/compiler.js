@@ -249,6 +249,9 @@ class Compiler {
     // maybe attrs have two or more `r-hrml`s
     let hasRhtml = false
 
+    let staticStyle = ''
+    let dynamicStyle = ''
+
     let attributeStr = attrs
       .map( attr => {
         let value
@@ -266,6 +269,16 @@ class Compiler {
           }
 
           value = this.render( expr )
+        }
+
+        // style
+        if ( attr.name === 'style' ) {
+          staticStyle = value
+          return ''
+        }
+        if ( attr.name === 'r-style' ) {
+          dynamicStyle = value.slice( 3, value.length - 3 )
+          return ''
         }
 
         // class
@@ -337,7 +350,10 @@ class Compiler {
       attributeStr.splice( dynamicIndex, 1 )
     }
 
-    attributeStr.filter( Boolean )
+    // deal style
+    attributeStr.push( `style="${ directives.styleObj( dynamicStyle, staticStyle ) }"` )
+
+    attributeStr = attributeStr.filter( Boolean )
     .join( ' ' )
 
     // cleanup holdersForRender
