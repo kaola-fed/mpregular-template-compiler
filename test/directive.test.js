@@ -1,5 +1,15 @@
 const assert = require( './assert' )
 
+test.only( 'r-class', () => {
+  assert(
+  `<div class="static" r-class={{ 
+    'active': a === 1,
+    "active1": index 
+    }}>foo</div>`,
+  `<view class="_div static {{[a === 1 ? 'active' : '', index ? 'active1' : '']}}">foo</view>`
+)
+} )
+
 test( 'r-hide', () => {
   assert(
     `<div r-hide="{ a === 1 }">foo</div>`,

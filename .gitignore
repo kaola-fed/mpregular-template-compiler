@@ -1,6 +1,6 @@
 /dist
 /index.html
-
+.idea/
 .DS_Store
 
 # Logs

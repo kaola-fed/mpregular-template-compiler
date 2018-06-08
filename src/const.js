@@ -179,4 +179,5 @@ const PROXY_EVENT_HANDLER_NAME = 'proxyEvent'
 
 exports.TAG_MAP = TAG_MAP
 exports.EVENT_MAP = EVENT_MAP
+exports.DYNAMIC_CLASS = 'dynamicClass='
 exports.PROXY_EVENT_HANDLER_NAME = PROXY_EVENT_HANDLER_NAME

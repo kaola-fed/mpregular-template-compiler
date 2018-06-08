@@ -1,7 +1,7 @@
 const clone = require( 'lodash.clonedeep' )
 const Parser = require( './parser/Parser' )
 const { transformTagName, transformEventName, nanoid } = require( './helpers' )
-const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
+const { PROXY_EVENT_HANDLER_NAME, DYNAMIC_CLASS } = require( './const' )
 const directives = require( './directives' )
 const createHistory = require( './history' )
 const node = require( './parser/node' )
@@ -314,8 +314,31 @@ class Compiler {
         // others
         return `${ attr.name }="${ value }"`
       } )
-      .filter( Boolean )
-      .join( ' ' )
+
+    // deal dynamic class
+    const dynamicClass = attributeStr.filter( function ( item ) {
+      return _.hasDynamicClass( item )
+    } )[ 0 ]
+
+    if ( dynamicClass ) {
+      const classPrefix = 'class='
+
+      const staticClass = attributeStr.filter( function ( item ) {
+        return item.indexOf( classPrefix ) !== -1
+      } )[ 0 ]
+
+      const staticClassValue = staticClass.slice( classPrefix.length + 1, staticClass.length - 1 )
+
+      const staticIndex = attributeStr.indexOf( staticClass )
+      const dynamicIndex = attributeStr.indexOf( dynamicClass )
+
+      attributeStr[ staticIndex ] = `${ classPrefix }"${ staticClassValue } ${ dynamicClass.slice( DYNAMIC_CLASS.length ) }"`
+
+      attributeStr.splice( dynamicIndex, 1 )
+    }
+
+    attributeStr.filter( Boolean )
+    .join( ' ' )
 
     // cleanup holdersForRender
     ast.attrs.forEach( attr => {
