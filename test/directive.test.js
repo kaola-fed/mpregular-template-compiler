@@ -17,7 +17,7 @@ test( 'class-style', () => {
   )
 })
 
-test.only( 'r-style', () => {
+test( 'r-style', () => {
   assert(
     `<div style="width:20px;" r-style="{{ color: activeColor, fontSize: fontSize + 'px' }}">111</div>`,
     `<view class="_div" style="width:20px; {{('color:' + activeColor + ';' + 'font-size:' + (fontSize + 'px') + ';')}}">111</view>`

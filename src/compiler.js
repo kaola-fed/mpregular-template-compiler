@@ -351,7 +351,9 @@ class Compiler {
     }
 
     // deal style
-    attributeStr.push( `style="${ directives.styleObj( dynamicStyle, staticStyle ) }"` )
+    if ( dynamicStyle || staticStyle ) {
+      attributeStr.push( `style="${ directives.styleObj( dynamicStyle, staticStyle ) }"` )
+    }
 
     attributeStr = attributeStr.filter( Boolean )
     .join( ' ' )
