@@ -1,5 +1,4 @@
 require('./shim')();
-const {DYNAMIC_CLASS} = require('../const')
 
 
 
@@ -616,6 +615,3 @@ _.simpleDiff = function (now, old){
 
 }
 
-_.hasDynamicClass = function ( item ) {
-  return item.indexOf(DYNAMIC_CLASS) !== -1
-}

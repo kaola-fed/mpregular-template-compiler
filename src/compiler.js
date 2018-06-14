@@ -1,7 +1,7 @@
 const clone = require( 'lodash.clonedeep' )
 const Parser = require( './parser/Parser' )
 const { transformTagName, transformEventName, nanoid } = require( './helpers' )
-const { PROXY_EVENT_HANDLER_NAME, DYNAMIC_CLASS } = require( './const' )
+const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
 const directives = require( './directives' )
 const createHistory = require( './history' )
 const node = require( './parser/node' )
@@ -14,6 +14,7 @@ class Compiler {
     this.options = options
     this.usedComponents = []
     this.marks = {
+      rClassId: 0,
       eventId: 0,
       localComponentIndex: 0,
       defaultSlotIndex: 0,
@@ -248,9 +249,7 @@ class Compiler {
 
     // maybe attrs have two or more `r-hrml`s
     let hasRhtml = false
-
-    let staticStyle = ''
-    let dynamicStyle = ''
+    let hasRclass = false
 
     let attributeStr = attrs
       .map( attr => {
@@ -271,19 +270,15 @@ class Compiler {
           value = this.render( expr )
         }
 
-        // style
-        if ( attr.name === 'style' ) {
-          staticStyle = value
-          return ''
-        }
-        if ( attr.name === 'r-style' ) {
-          dynamicStyle = value.slice( 3, value.length - 3 )
+        // class
+        if ( attr.name === 'class' ) {
+          attr.static = `_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }${ attr.value ? ' ' + value : '' }`
           return ''
         }
 
-        // class
-        if ( attr.name === 'class' ) {
-          return `class="_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }${ attr.value ? ' ' + value : '' }"`
+        if ( attr.name === 'r-class' ) {
+          hasRclass = true
+          return ''
         }
 
         if ( attr.name === 'r-html' ) {
@@ -329,30 +324,22 @@ class Compiler {
       } )
 
     // deal dynamic class
-    const dynamicClass = attributeStr.filter( function ( item ) {
-      return _.hasDynamicClass( item )
-    } )[ 0 ]
-
-    if ( dynamicClass ) {
-      const classPrefix = 'class='
-
-      const staticClass = attributeStr.filter( function ( item ) {
-        return item.indexOf( classPrefix ) !== -1
-      } )[ 0 ]
-
-      const staticClassValue = staticClass.slice( classPrefix.length + 1, staticClass.length - 1 )
-
-      const staticIndex = attributeStr.indexOf( staticClass )
-      const dynamicIndex = attributeStr.indexOf( dynamicClass )
-
-      attributeStr[ staticIndex ] = `${ classPrefix }"${ staticClassValue } ${ dynamicClass.slice( DYNAMIC_CLASS.length ) }"`
-
-      attributeStr.splice( dynamicIndex, 1 )
+    let staticClass = ''
+    const classAst = attrs.filter( a => a.name === 'class' )[ 0 ]
+    if ( classAst ) {
+      staticClass = classAst.static
     }
 
-    // deal style
-    if ( dynamicStyle || staticStyle ) {
-      attributeStr.push( `style="${ directives.styleObj( dynamicStyle, staticStyle ) }"` )
+    if ( hasRclass ) {
+      const lists = this.history.search( 'list' )
+      const keypath = this.marks.rClassId + ' ' + lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
+
+      attributeStr.push( `class="{{__class__[ ${ keypath }]}}"` )
+      ast.rClassId = this.marks.rClassId
+      ast.staticClass = staticClass
+      this.marks.rClassId++
+    } else if ( staticClass ) {
+      attributeStr.push( `class="${ staticClass }"` )
     }
 
     attributeStr = attributeStr.filter( Boolean )
