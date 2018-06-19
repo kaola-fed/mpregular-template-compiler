@@ -1,24 +1,14 @@
 const assert = require( './assert' )
 
-test( 'r-class', () => {
+test.only( 'r-class', () => {
   assert(
   `<div class="static" r-class={{ 
     'active': a === 1,
     "active1": index 
     }}>foo</div>`,
-  `<view class="{{__class__[ 0 ]}}">foo</view>`
+  `<view class="{{ __holders[ 0 ] }}">foo</view>`
 )
 } )
-
-// test.only( 'class', () => {
-//   assert(
-//     `<div class="{{'active': b === 1}}" r-class={{
-//     'active': a === 1,
-//     "active1": index
-//     }}>foo</div>`,
-//     `<view class="{{__class__[ 0 ]}}">foo</view>`
-//   )
-// } )
 
 test( 'r-hide', () => {
   assert(

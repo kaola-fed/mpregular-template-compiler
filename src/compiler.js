@@ -14,7 +14,6 @@ class Compiler {
     this.options = options
     this.usedComponents = []
     this.marks = {
-      rClassId: 0,
       eventId: 0,
       localComponentIndex: 0,
       defaultSlotIndex: 0,
@@ -287,6 +286,7 @@ class Compiler {
 
         if ( attr.name === 'r-class' ) {
           hasRclass = true
+          attr.holderPath = value
           return ''
         }
 
@@ -340,13 +340,9 @@ class Compiler {
     }
 
     if ( hasRclass ) {
-      const lists = this.history.search( 'list' )
-      const keypath = this.marks.rClassId + ' ' + lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
-
-      attributeStr.push( `class="{{__class__[ ${ keypath }]}}"` )
-      ast.rClassId = this.marks.rClassId
+      const rClassAst = attrs.filter( a => a.name === 'r-class' )[ 0 ]
+      attributeStr.push( `class="${ rClassAst.holderPath }"` )
       ast.staticClass = staticClass
-      this.marks.rClassId++
     } else if ( staticClass ) {
       attributeStr.push( `class="${ staticClass }"` )
     }
