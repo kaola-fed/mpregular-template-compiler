@@ -102,7 +102,7 @@ class Compiler {
     }
 
     if ( expr.setbody ) {
-      this.usedExpressions.set[ expr.setbody ] = new Function( _.ctxName, _.setName, _.extName, _.prefix + expr.setbody )
+      this.usedExpressions.set[ expr.setbody ] = new Function( _.ctxName, _.setName, _.extName, _.prefix + 'return (' + expr.setbody + ')' )
     }
     /* eslint-enable */
   }
