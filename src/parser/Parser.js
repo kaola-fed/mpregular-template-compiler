@@ -312,8 +312,8 @@ op.list = function(){
       this.error('track by ' + variable + '_index is not supported');
     }else{
       track = this.expression();
-      if ( !/\w+\.\w+/.test( track.raw ) ) {
-        this.error( 'only ' + variable + '.<trackkey> is supported, <trackby> should be a key in ' + variable )
+      if ( track.raw !== variable && !/\w+\.\w+/.test( track.raw ) ) {
+        this.error( 'only ' + variable + ' and ' + variable + '.<trackkey> is supported, <trackby> is a key in ' + variable )
       }
       if(track.constant){
         // true is means constant, we handle it just like xxx_index.

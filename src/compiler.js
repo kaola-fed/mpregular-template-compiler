@@ -178,11 +178,20 @@ class Compiler {
       // mount holders
       attr.holdersForRender = holders
       attr.holders = holders.filter( holder => {
-        return holder.type === 'expression' &&
-          (
-            holder.hasFilter || holder.hasCallExpression || typeof holder.holderId !== 'undefined'
-          )
+        return holder.type === 'expression'
       } )
+
+      // holderId should not appear in component attrs
+      // to ensure extra data will not be passed to setData
+      // for performance purpose :)
+      if ( isComponent ) {
+        if ( expr && expr.type === 'expression' ) {
+          delete expr.holderId
+        }
+
+        // remove unused holders to keep bundle slim
+        delete attr.holders
+      }
     } )
 
     // clone after holderId is attached, we can use holderId later
@@ -405,39 +414,34 @@ class Compiler {
   expression( ast ) {
     this.saveExpression( ast )
 
-    const hasFilter = ast.hasFilter
-    const hasCallExpression = ast.hasCallExpression
+    // const hasFilter = ast.hasFilter
+    // const hasCallExpression = ast.hasCallExpression
 
     delete ast.hasFilter
     delete ast.hasCallExpression
 
-    if ( hasFilter || hasCallExpression || typeof ast.holderId !== 'undefined' ) {
-      // maybe already added before
-      if ( typeof ast.holderId === 'undefined' ) {
-        ast.holderId = this.marks.holderId
-        this.marks.holderId++
-      }
-
-      const lists = this.history.search( 'list' )
-      const keypath = ast.holderId +
-        ( lists.length > 0 ? ' ' : '' ) +
-        lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
-
-      return `{{ __holders[ ${ keypath } ] }}`
+    if ( typeof ast.holderId === 'undefined' ) {
+      ast.holderId = this.marks.holderId
+      this.marks.holderId++
     }
 
-    const raw = ast.raw ? ast.raw.trim() : ''
-    return `{{ ${ raw } }}`
+    const lists = this.history.search( 'list' )
+    const keypath = ast.holderId +
+      ( lists.length > 0 ? ' ' : '' ) +
+      lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
+
+    return `{{ __holders[ ${ keypath } ] }}`
   }
 
   'if'( ast ) {
+    const condition = this.render( ast.test )
     this.saveExpression( ast.test )
 
-    return `<block wx:if="{{ ${ ast.test.raw } }}">${ this.render( ast.consequent ) }</block><block wx:else>${ this.render( ast.alternate ) }</block>`
+    return `<block wx:if="${ condition }">${ this.render( ast.consequent ) }</block><block wx:else>${ this.render( ast.alternate ) }</block>`
   }
 
   list( ast ) {
-    const sequence = ast.sequence.raw
+    const sequence = this.render( ast.sequence )
     const variable = ast.variable
     const index = `${ variable }_index`
     const body = ast.body
@@ -462,7 +466,7 @@ class Compiler {
       }
     }
 
-    const rendered = `<block wx:for="{{ ${ sequence } }}" wx:for-item="${ variable }" wx:for-index="${ index }"${ wxkey ? ' wx:key="' + wxkey + '"' : '' }>${ this.render( body ) }</block>`
+    const rendered = `<block wx:for="${ sequence }" wx:for-item="${ variable }" wx:for-index="${ index }"${ wxkey ? ' wx:key="' + wxkey + '"' : '' }>${ this.render( body ) }</block>`
 
     this.history.pop( 'list' )
 
