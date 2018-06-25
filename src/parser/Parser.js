@@ -442,7 +442,8 @@ op.filter = function(){
 op.assign = function(){
   var left = this.condition(), ll;
   if(ll = this.eat(['=', '+=', '-=', '*=', '/=', '%='])){
-    this.error( 'assignment expression is not supported' )
+    if(!left.set) this.error('invalid lefthand expression in assignment expression');
+    return getset( left.set.replace( "," + _.setName, "," + this.condition().get ).replace("'='", "'"+ll.type+"'"), left.set);
   }
   return left;
 }
