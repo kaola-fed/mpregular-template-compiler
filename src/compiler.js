@@ -19,6 +19,7 @@ class Compiler {
       defaultSlotIndex: 0,
       rhtmlId: 0,
       holderId: 0,
+      classId: 0
     }
     this.history = createHistory()
     this.usedExpressions = {
@@ -134,7 +135,7 @@ class Compiler {
     let afterTagName = transformTagName( beforeTagName )
     const children = ast.children || []
     // do not pollute old ast
-    const moduleId = this.options.moduleId
+    // const moduleId = this.options.moduleId
 
     // transform ast when element is in registered components
     const registeredComponents = this.options.components || {}
@@ -257,7 +258,6 @@ class Compiler {
 
     // maybe attrs have two or more `r-hrml`s
     let hasRhtml = false
-    let hasRclass = false
 
     let attributeStr = attrs
       .map( attr => {
@@ -280,13 +280,17 @@ class Compiler {
 
         // class
         if ( attr.name === 'class' ) {
-          attr.static = `_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }${ attr.value ? ' ' + value : '' }`
+          attr.static = attr.holdersForRender
+                          .filter( h => h.type === 'text' )
+                          .map( h => h.text.trim() )
+                          .concat( `_${ beforeTagName }` )
+                          .join( ' ' )
+
+          attr.staticClassHolderId = attr.holders.map( h => h.holderId )
           return ''
         }
 
         if ( attr.name === 'r-class' ) {
-          hasRclass = true
-          attr.holderPath = value
           return ''
         }
 
@@ -334,18 +338,18 @@ class Compiler {
 
     // deal dynamic class
     let staticClass = ''
+    let staticClassHolderId = ''
     const classAst = attrs.filter( a => a.name === 'class' )[ 0 ]
     if ( classAst ) {
       staticClass = classAst.static
+      staticClassHolderId = classAst.staticClassHolderId
     }
 
-    if ( hasRclass ) {
-      const rClassAst = attrs.filter( a => a.name === 'r-class' )[ 0 ]
-      attributeStr.push( `class="${ rClassAst.holderPath }"` )
-      ast.staticClass = staticClass
-    } else if ( staticClass ) {
-      attributeStr.push( `class="${ staticClass }"` )
-    }
+    attributeStr.push( `class="{{ __holders[ 'class${ this.marks.classId }' ] }}"` )
+    ast.classId = this.marks.classId
+    ast.staticClass = staticClass
+    ast.staticClassHolderId = staticClassHolderId
+    this.marks.classId++
 
     attributeStr = attributeStr.filter( Boolean )
     .join( ' ' )
