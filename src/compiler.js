@@ -135,7 +135,7 @@ class Compiler {
     let afterTagName = transformTagName( beforeTagName )
     const children = ast.children || []
     // do not pollute old ast
-    // const moduleId = this.options.moduleId
+    const moduleId = this.options.moduleId
 
     // transform ast when element is in registered components
     const registeredComponents = this.options.components || {}
@@ -280,11 +280,9 @@ class Compiler {
 
         // class
         if ( attr.name === 'class' ) {
-          attr.static = attr.holdersForRender
+          attr.static = [ `_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }` ].concat( attr.holdersForRender
                           .filter( h => h.type === 'text' )
-                          .map( h => h.text.trim() )
-                          .concat( `_${ beforeTagName }` )
-                          .join( ' ' )
+                          .map( h => h.text.trim() ) ).join( ' ' )
 
           attr.staticClassHolderId = attr.holders.map( h => h.holderId )
           return ''
