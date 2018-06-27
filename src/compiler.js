@@ -280,11 +280,18 @@ class Compiler {
 
         // class
         if ( attr.name === 'class' ) {
-          attr.static = [ `_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }` ].concat( attr.holdersForRender
+          if ( !attr.holdersForRender ) {
+            attr.holdersForRender = []
+          }
+          if ( !attr.holders ) {
+            attr.holders = []
+          }
+
+          attr.staticClass = [ `_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }` ].concat( attr.holdersForRender
                           .filter( h => h.type === 'text' )
                           .map( h => h.text.trim() ) ).join( ' ' )
 
-          attr.staticClassHolderId = attr.holders.map( h => h.holderId )
+          attr.staticClassHolderIds = attr.holders.map( h => h.holderId )
           return ''
         }
 
@@ -335,18 +342,15 @@ class Compiler {
       } )
 
     // deal dynamic class
-    let staticClass = ''
-    let staticClassHolderId = ''
-    const classAst = attrs.filter( a => a.name === 'class' )[ 0 ]
-    if ( classAst ) {
-      staticClass = classAst.static
-      staticClassHolderId = classAst.staticClassHolderId
-    }
+    const classAstArr = attrs.filter( attr => attr.name === 'class' )
+    const classAst = classAstArr[ classAstArr.length > 0 ? classAstArr.length - 1 : 0 ]
+    const lists = this.history.search( 'list' )
+    const keypath = `'class${ this.marks.classId }' ` + lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
 
-    attributeStr.push( `class="{{ __holders[ 'class${ this.marks.classId }' ] }}"` )
+    attributeStr.push( `class="{{ __holders[ ${ keypath } ] }}"` )
     ast.classId = this.marks.classId
-    ast.staticClass = staticClass
-    ast.staticClassHolderId = staticClassHolderId
+    ast.staticClass = classAst ? classAst.staticClass : ''
+    ast.staticClassHolderIds = classAst ? classAst.staticClassHolderIds : ''
     this.marks.classId++
 
     attributeStr = attributeStr.filter( Boolean )
