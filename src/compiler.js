@@ -126,7 +126,8 @@ class Compiler {
     this.saveExpression( ast.content )
     // use parent data ($p)
     // import all slots first, who use this will give the $slot value
-    return '<template is="{{ $defaultSlot }}" data="{{ ...$root[ $p ], $root }}"></template>'
+    // __indexMap represents indexes grabbed from list (in runtime)
+    return '<template is="{{ $defaultSlot }}" data="{{ ...$root[ $p ], $root, ...__indexMap }}"></template>'
   }
 
   element( ast ) {
