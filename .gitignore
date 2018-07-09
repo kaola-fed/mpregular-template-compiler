@@ -1,4 +1,5 @@
 /dist
+package-lock.json
 /index.html
 .idea/
 .DS_Store
