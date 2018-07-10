@@ -19,6 +19,7 @@ class Compiler {
       defaultSlotIndex: 0,
       rhtmlId: 0,
       holderId: 0,
+      classId: 0
     }
     this.history = createHistory()
     this.usedExpressions = {
@@ -280,7 +281,23 @@ class Compiler {
 
         // class
         if ( attr.name === 'class' ) {
-          return `class="_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }${ attr.value ? ' ' + value : '' }"`
+          if ( !attr.holdersForRender ) {
+            attr.holdersForRender = []
+          }
+          if ( !attr.holders ) {
+            attr.holders = []
+          }
+
+          attr.staticClass = [ `_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }` ].concat( attr.holdersForRender
+                          .filter( h => h.type === 'text' )
+                          .map( h => h.text.trim() ) ).join( ' ' )
+
+          attr.staticClassHolderIds = attr.holders.map( h => h.holderId )
+          return ''
+        }
+
+        if ( attr.name === 'r-class' ) {
+          return ''
         }
 
         if ( attr.name === 'r-html' ) {
@@ -324,8 +341,21 @@ class Compiler {
         // others
         return `${ attr.name }="${ value }"`
       } )
-      .filter( Boolean )
-      .join( ' ' )
+
+    // deal dynamic class
+    const classAstArr = attrs.filter( attr => attr.name === 'class' )
+    const classAst = classAstArr[ classAstArr.length > 0 ? classAstArr.length - 1 : 0 ]
+    const lists = this.history.search( 'list' )
+    const keypath = `'class${ this.marks.classId }' ` + lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
+
+    attributeStr.push( `class="{{ __holders[ ${ keypath } ] }}"` )
+    ast.classId = this.marks.classId
+    ast.staticClass = classAst ? classAst.staticClass : ''
+    ast.staticClassHolderIds = classAst ? classAst.staticClassHolderIds : ''
+    this.marks.classId++
+
+    attributeStr = attributeStr.filter( Boolean )
+    .join( ' ' )
 
     // cleanup holdersForRender
     ast.attrs.forEach( attr => {

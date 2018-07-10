@@ -17,7 +17,7 @@ test( 'insert class if not exist', () => {
 test( 'a[href] should be converted to navigator[url]', () => {
   assert(
     `<a href="https://m.kaola.com"></a>`,
-    `<navigator class="_a" url="https://m.kaola.com"></navigator>`
+    `<navigator url="https://m.kaola.com" class="_a"></navigator>`
   )
 } )
 
@@ -59,7 +59,7 @@ test( 'component', () => {
 test( 'event in list', () => {
   assert(
     `{#list items as item}<div on-click="{ this.onClick($event) }"></div>{/list}`,
-    `<block wx:for="{{ items }}" wx:for-item="item" wx:for-index="item_index"><view class="_div" bindtap="proxyEvent" data-event-id="0-{{ item_index }}" data-comp-id="{{ $k }}"></view></block>`,
+    `<block wx:for="{{ items }}" wx:for-item="item" wx:for-index="item_index"><view bindtap="proxyEvent" class="_div" data-event-id="0-{{ item_index }}" data-comp-id="{{ $k }}"></view></block>`,
     {}
   )
 } )

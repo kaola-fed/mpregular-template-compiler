@@ -2,7 +2,7 @@ const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
 const { errorLog } = require( './helpers' )
 
 module.exports = {
-  'r-class': notSupported,
+  'r-class': rClass,
 
   'r-style': notSupported,
 
@@ -15,6 +15,11 @@ module.exports = {
   'r-model': model,
 
   'r-hide': hide,
+
+}
+
+function rClass() {
+  return ''
 }
 
 function model( { tag, value } = {} ) {
