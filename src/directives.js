@@ -2,10 +2,6 @@ const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
 const { errorLog } = require( './helpers' )
 
 module.exports = {
-  'r-class': rClass,
-
-  'r-style': notSupported,
-
   'r-animation': notSupported,
 
   'r-anim': notSupported,
@@ -16,9 +12,13 @@ module.exports = {
 
   'r-hide': hide,
 
+  'r-class': nothing,
+
+  'r-style': notSupported,
+
 }
 
-function rClass() {
+function nothing() {
   return ''
 }
 

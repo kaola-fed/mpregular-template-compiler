@@ -105,6 +105,8 @@ class Compiler {
     if ( expr.setbody ) {
       this.usedExpressions.set[ expr.setbody ] = new Function( _.ctxName, _.setName, _.extName, _.prefix + expr.setbody )
     }
+
+    return expr.body
     /* eslint-enable */
   }
 
@@ -155,6 +157,7 @@ class Compiler {
       }
 
       const onlySingleExpr = holders.length === 1 && holders[ 0 ].type === 'expression'
+      let expressionStr = ''
       if ( !onlySingleExpr ) {
         let constant = true
         const body = []
@@ -166,20 +169,26 @@ class Compiler {
           // silent the mutiple inteplation
           body.push( item.body || '\'' + item.text.replace( /'/g, '\\\'' ) + '\'' )
         } )
-        this.saveExpression(
+        expressionStr = this.saveExpression(
           node.expression( '[' + body.join( ',' ) + '].join(\'\')', null, constant )
         )
+      } else if ( onlySingleExpr ) {
+        expressionStr = this.saveExpression( holders[ 0 ] )
       }
 
       // 1. add holderId
       // 2. save all expressions
-      this.render( holders )
-
-      // mount holders
-      attr.holdersForRender = holders
-      attr.holders = holders.filter( holder => {
-        return holder.type === 'expression'
+      const isStatic = holders.every( holder => {
+        return holder.type !== 'expression'
       } )
+      if ( isStatic ) {
+        attr.holder = null
+      } else {
+        attr.holder = holders[ 0 ]
+        attr.holder.id = this.marks.holderId
+        attr.body = expressionStr
+        this.marks.holderId++
+      }
 
       // holderId should not appear in component attrs
       // to ensure extra data will not be passed to setData
@@ -196,19 +205,6 @@ class Compiler {
 
     // clone after holderId is attached, we can use holderId later
     let attrs = clone( ast.attrs || [] )
-
-    // make sure class is available ( exclude template tag )
-    if (
-      !attrs.some( attr => attr.name === 'class' ) // has no class attribute
-    ) {
-      attrs.unshift( {
-        mdf: void 0,
-        name: 'class',
-        type: 'attribute',
-        isRaw: true,
-        value: ''
-      } )
-    }
 
     let hasSlot = false
 
@@ -266,36 +262,21 @@ class Compiler {
         // if marked as isRaw, like `data` above
         if ( attr.isRaw ) {
           value = attr.value
-        } else {
-          let expr = attr.value || []
+        } else if ( attr.holder ) {
+          const lists = this.history.search( 'list' )
+          const keypath = attr.holder.id +
+              ( lists.length > 0 ? ' ' : '' ) +
+              lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
 
-          // prefer holdersForRender here
-          if ( Array.isArray( attr.holdersForRender ) ) {
-            // class's holdersForRender is undefined
-            expr = attr.holdersForRender
-          }
-
-          value = this.render( expr )
+          value = attr.value = `{{ __holders[ ${ keypath } ] }}`
         }
 
         // class
         if ( attr.name === 'class' ) {
-          if ( !attr.holdersForRender ) {
-            attr.holdersForRender = []
-          }
-          if ( !attr.holders ) {
-            attr.holders = []
-          }
-
-          attr.staticClass = [ `_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }` ].concat( attr.holdersForRender
-                          .filter( h => h.type === 'text' )
-                          .map( h => h.text.trim() ) ).join( ' ' )
-
-          attr.staticClassHolderIds = attr.holders.map( h => h.holderId )
           return ''
         }
 
-        if ( attr.name === 'r-class' ) {
+        if ( attr.name === 'style' ) {
           return ''
         }
 
@@ -342,16 +323,28 @@ class Compiler {
       } )
 
     // deal dynamic class
+    const classPrefix = `_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }`
     const classAstArr = attrs.filter( attr => attr.name === 'class' )
+    const dynamicAstArr = attrs.filter( attr => attr.name === 'r-class' )
     const classAst = classAstArr[ classAstArr.length > 0 ? classAstArr.length - 1 : 0 ]
-    const lists = this.history.search( 'list' )
-    const keypath = `'class${ this.marks.classId }' ` + lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
+    const dynamicClassAst = dynamicAstArr[ dynamicAstArr.length > 0 ? dynamicAstArr.length - 1 : 0 ]
 
-    attributeStr.push( `class="{{ __holders[ ${ keypath } ] }}"` )
-    ast.classId = this.marks.classId
-    ast.staticClass = classAst ? classAst.staticClass : ''
-    ast.staticClassHolderIds = classAst ? classAst.staticClassHolderIds : ''
-    this.marks.classId++
+    let dynamic
+    if ( classAst && dynamicClassAst ) {
+      if ( classAst.holder ) {
+        // if r-class class both have interpolation final holderId is class interpolation holderId
+        dynamic = classAst.value
+      } else {
+        dynamic = dynamicClassAst.value
+      }
+    } else if ( !classAst && dynamicClassAst ) {
+      dynamic = dynamicClassAst.value
+    } else if ( classAst && !dynamicClassAst ) {
+      dynamic = classAst.value
+    } else {
+      dynamic = ''
+    }
+    attributeStr.push( `class="${ classPrefix } ${ dynamic }"` )
 
     attributeStr = attributeStr.filter( Boolean )
     .join( ' ' )
