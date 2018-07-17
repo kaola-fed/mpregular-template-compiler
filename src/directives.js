@@ -14,7 +14,7 @@ module.exports = {
 
   'r-class': nothing,
 
-  'r-style': notSupported,
+  'r-style': nothing,
 
 }
 

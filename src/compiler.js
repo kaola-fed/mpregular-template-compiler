@@ -1,6 +1,6 @@
 const clone = require( 'lodash.clonedeep' )
 const Parser = require( './parser/Parser' )
-const { transformTagName, transformEventName, nanoid } = require( './helpers' )
+const { transformTagName, transformEventName, nanoid, dealDynamicAndStaticAttr } = require( './helpers' )
 const { PROXY_EVENT_HANDLER_NAME } = require( './const' )
 const directives = require( './directives' )
 const createHistory = require( './history' )
@@ -277,9 +277,9 @@ class Compiler {
           return ''
         }
 
-        // if ( attr.name === 'style' ) {
-        //   return ''
-        // }
+        if ( attr.name === 'style' ) {
+          return ''
+        }
 
         if ( attr.name === 'r-html' ) {
           hasRhtml = true
@@ -325,27 +325,14 @@ class Compiler {
 
     // deal dynamic class
     const classPrefix = `_${ beforeTagName }${ moduleId ? ' ' + moduleId : '' }`
-    const classAstArr = attrs.filter( attr => attr.name === 'class' )
-    const dynamicAstArr = attrs.filter( attr => attr.name === 'r-class' )
-    const classAst = classAstArr[ classAstArr.length > 0 ? classAstArr.length - 1 : 0 ]
-    const dynamicClassAst = dynamicAstArr[ dynamicAstArr.length > 0 ? dynamicAstArr.length - 1 : 0 ]
+    const dynamicClass = dealDynamicAndStaticAttr( attrs, 'class', 'r-class' )
+    attributeStr.push( `class="${ classPrefix } ${ dynamicClass }"` )
 
-    let dynamic
-    if ( classAst && dynamicClassAst ) {
-      if ( classAst.holder ) {
-        // if r-class class both have interpolation final holderId is class interpolation holderId
-        dynamic = classAst.value
-      } else {
-        dynamic = dynamicClassAst.value
-      }
-    } else if ( !classAst && dynamicClassAst ) {
-      dynamic = dynamicClassAst.value
-    } else if ( classAst && !dynamicClassAst ) {
-      dynamic = classAst.value
-    } else {
-      dynamic = ''
+    // deal dynamic style
+    const dynamicStyle = dealDynamicAndStaticAttr( attrs, 'style', 'r-style' )
+    if ( dynamicStyle ) {
+      attributeStr.push( `style="${ dynamicStyle }"` )
     }
-    attributeStr.push( `class="${ classPrefix } ${ dynamic }"` )
 
     attributeStr = attributeStr.filter( Boolean )
     .join( ' ' )
