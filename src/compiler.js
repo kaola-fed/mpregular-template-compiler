@@ -178,15 +178,16 @@ class Compiler {
 
       // 1. add holderId
       // 2. save all expressions
-      const isStatic = holders.every( holder => {
-        return holder.type !== 'expression'
+      const expressionHolders = holders.filter( holder => {
+        return holder.type === 'expression'
       } )
+      const isStatic = !expressionHolders.length
       if ( isStatic ) {
         attr.holder = null
       } else {
-        attr.holder = holders[ 0 ]
+        attr.holder = expressionHolders[ 0 ]
         attr.holder.id = this.marks.holderId
-        attr.body = expressionStr
+        attr.holder.body = expressionStr
         this.marks.holderId++
       }
 
@@ -260,7 +261,7 @@ class Compiler {
         let value
 
         // if marked as isRaw, like `data` above
-        if ( attr.isRaw ) {
+        if ( attr.isRaw || !attr.holder ) {
           value = attr.value
         } else if ( attr.holder ) {
           const lists = this.history.search( 'list' )
@@ -276,9 +277,9 @@ class Compiler {
           return ''
         }
 
-        if ( attr.name === 'style' ) {
-          return ''
-        }
+        // if ( attr.name === 'style' ) {
+        //   return ''
+        // }
 
         if ( attr.name === 'r-html' ) {
           hasRhtml = true
