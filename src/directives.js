@@ -6,8 +6,6 @@ module.exports = {
 
   'r-anim': notSupported,
 
-  ref: notSupported,
-
   'r-model': model,
 
   'r-hide': hide,
@@ -15,7 +13,6 @@ module.exports = {
   'r-class': nothing,
 
   'r-style': nothing,
-
 }
 
 function nothing() {
