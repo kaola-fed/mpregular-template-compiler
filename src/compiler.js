@@ -187,7 +187,7 @@ class Compiler {
         attr.holder = null
       } else {
         attr.holder = expressionHolders[ 0 ]
-        attr.holder.id = this.marks.holderId
+        attr.holder.holderId = this.marks.holderId
         attr.holder.body = expressionStr
         this.marks.holderId++
       }
@@ -266,7 +266,7 @@ class Compiler {
           value = attr.value
         } else if ( attr.holder ) {
           const lists = this.history.search( 'list' )
-          const keypath = attr.holder.id +
+          const keypath = attr.holder.holderId +
               ( lists.length > 0 ? ' ' : '' ) +
               lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
 
