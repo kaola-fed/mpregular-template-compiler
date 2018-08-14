@@ -196,12 +196,15 @@ class Compiler {
       // to ensure extra data will not be passed to setData
       // for performance purpose :)
       if ( isComponent ) {
-        if ( expr && expr.type === 'expression' ) {
-          delete expr.holderId
+        // if ( expr && expr.type === 'expression' ) {
+        //   delete expr.holderId
+        // }
+        if ( attr.holder ) {
+          delete attr.holder.holderId
         }
 
         // remove unused holders to keep bundle slim
-        delete attr.holders
+        // delete attr.holder
       }
     } )
 
