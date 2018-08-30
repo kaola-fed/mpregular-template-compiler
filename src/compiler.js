@@ -36,12 +36,23 @@ class Compiler {
     this.hasInclude = false
     // mark whether need prefix `<import src="../wxparse/index" />`, global
     this.hasRhtml = false
+    // mark whether need import all registered components
+    this.hasRComponent = false
 
     const rendered = this.render( this.ast )
 
     let prefix = ''
     prefix = prefix + ( this.hasInclude ? `<import src="slots" />\n` : '' )
     prefix = prefix + ( this.hasRhtml ? `<import src="../wxparse/index" />\n` : '' )
+
+    if ( this.hasRComponent ) {
+      const registeredComponents = this.options.components || {}
+      this.usedComponents = dedupe(
+        Object.keys( registeredComponents )
+          .map( k => registeredComponents[ k ] ),
+        'name'
+      )
+    }
 
     const wxml = this.imports( {
       prefix,
@@ -105,8 +116,6 @@ class Compiler {
     if ( expr.setbody ) {
       this.usedExpressions.set[ expr.setbody ] = new Function( _.ctxName, _.setName, _.extName, _.prefix + 'return (' + expr.setbody + ')' )
     }
-
-    return expr.body
     /* eslint-enable */
   }
 
@@ -142,7 +151,22 @@ class Compiler {
 
     // transform ast when element is in registered components
     const registeredComponents = this.options.components || {}
-    const isComponent = Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag )
+    const isComponent = Object.prototype.hasOwnProperty.call( registeredComponents, ast.tag ) ||
+      ast.tag === 'r-component'
+
+    let isRComponent = false
+    if ( ast.tag === 'r-component' ) {
+      isRComponent = this.hasRComponent = true
+    }
+
+    // runtime tagName and name map string
+    const rComponentMapStrArray = []
+    let rComponentMapStr = ''
+    Object.keys( registeredComponents ).forEach( k => {
+      const c = registeredComponents[ k ]
+      rComponentMapStrArray.push( `'${ k }': '${ c.name }'` )
+    } )
+    rComponentMapStr = '{' + rComponentMapStrArray.join( ',' ) + '}'
 
     // use origin ast for modification purpose
     ast.attrs.forEach( attr => {
@@ -170,19 +194,22 @@ class Compiler {
           // silent the mutiple inteplation
           body.push( item.body || '\'' + item.text.replace( /'/g, '\\\'' ) + '\'' )
         } )
-        expressionStr = this.saveExpression(
-          node.expression( '[' + body.join( ',' ) + '].join(\'\')', null, constant )
-        )
+        const expr = node.expression( '[' + body.join( ',' ) + '].join(\'\')', null, constant )
+        this.saveExpression( expr )
+
+        expressionStr = expr ? expr.body : ''
       } else if ( onlySingleExpr ) {
-        expressionStr = this.saveExpression( holders[ 0 ] )
+        const expr = holders[ 0 ]
+        this.saveExpression( expr )
+
+        expressionStr = expr ? expr.body : ''
       }
 
-      // 1. add holderId
-      // 2. save all expressions
+      // add holder
       const expressionHolders = holders.filter( holder => {
         return holder.type === 'expression'
       } )
-      const isStatic = !expressionHolders.length
+      const isStatic = expressionHolders.length === 0
       if ( isStatic ) {
         attr.holder = null
       } else {
@@ -195,10 +222,11 @@ class Compiler {
       // holderId should not appear in component attrs
       // to ensure extra data will not be passed to setData
       // for performance purpose :)
-      if ( isComponent ) {
-        // if ( expr && expr.type === 'expression' ) {
-        //   delete expr.holderId
-        // }
+      if ( isRComponent ) {
+        if ( attr.holder && attr.name !== 'is' ) {
+          delete attr.holder.holderId
+        }
+      } else if ( isComponent ) {
         if ( attr.holder ) {
           delete attr.holder.holderId
         }
@@ -224,23 +252,33 @@ class Compiler {
 
       const definition = registeredComponents[ ast.tag ]
       // saved for prefixing imports
-      if ( !~this.usedComponents.indexOf( definition ) ) {
+      if ( definition && !~this.usedComponents.indexOf( definition ) ) {
         this.usedComponents.push( definition )
       }
 
       // change tag name to template
       afterTagName = 'template'
 
+      const attrIs = attrs.find( attr => attr.name === 'is' )
+
       // clean all attrs, we only need `is` and `data`
       attrs = []
 
-      attrs.push( {
-        mdf: void 0,
-        name: 'is',
-        isRaw: true,
-        type: 'attribute',
-        value: definition.name
-      } )
+      if ( definition ) {
+        attrs.push( {
+          mdf: void 0,
+          name: 'is',
+          isRaw: true,
+          type: 'attribute',
+          value: definition.name
+        } )
+      } else if ( isRComponent && attrIs ) {
+        if ( attrIs.holder ) {
+          attrIs.holder.body = `( ${ rComponentMapStr } )[ ${ attrIs.holder.body } ]`
+          this.saveExpression( attrIs.holder )
+        }
+        attrs.push( attrIs )
+      }
 
       const lists = this.history.search( 'list' )
 
@@ -340,11 +378,6 @@ class Compiler {
 
     attributeStr = attributeStr.filter( Boolean )
     .join( ' ' )
-
-    // cleanup holdersForRender
-    ast.attrs.forEach( attr => {
-      delete attr.holdersForRender
-    } )
 
     const needEventId = attrs.some(
       attr => (
@@ -459,6 +492,20 @@ class Compiler {
 
     return rendered
   }
+}
+
+function dedupe( items, dedupeKey ) {
+  const existed = {}
+
+  return items.filter( item => {
+    const value = item[ dedupeKey ]
+    if ( !existed[ value ] ) {
+      existed[ value ] = true
+      return true
+    }
+
+    return false
+  } )
 }
 
 module.exports = Compiler
