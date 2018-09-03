@@ -427,7 +427,14 @@ class Compiler {
       }
     } )
 
+    const main = `<${ afterTagName }${ attributeStr ? ' ' + attributeStr : '' }>${ isComponent ? '' : childrenStr }</${ afterTagName }>`
+
     if ( isRComponent && attrIs.holder ) {
+      const lists = this.history.search( 'list' )
+      const keypath = attrIs.holder.holderId +
+          ( lists.length > 0 ? ' ' : '' ) +
+          lists.map( list => `+ '-' + ${ list.data.index }` ).join( '' )
+
       const body = `( ${ rComponentMapStr } )[ ${ attrIs.holder.body } ]`
       const mockIs = {
         name: '_mocked_is_',
@@ -446,9 +453,11 @@ class Compiler {
       } )
       // del original holderId
       delete attrIs.holder.holderId
+
+      return `<block wx:if="{{ __holders[ ${ keypath } ] }}">${ main }</block>`
     }
 
-    return `<${ afterTagName }${ attributeStr ? ' ' + attributeStr : '' }>${ isComponent ? '' : childrenStr }</${ afterTagName }>`
+    return main
   }
 
   text( ast ) {
