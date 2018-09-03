@@ -273,10 +273,6 @@ class Compiler {
           value: definition.name
         } )
       } else if ( isRComponent && attrIs ) {
-        if ( attrIs.holder ) {
-          attrIs.holder.body = `( ${ rComponentMapStr } )[ ${ attrIs.holder.body } ]`
-          this.saveExpression( attrIs.holder )
-        }
         attrs.push( attrIs )
       }
 
@@ -376,8 +372,7 @@ class Compiler {
       attributeStr.push( `style="${ dynamicStyle }"` )
     }
 
-    attributeStr = attributeStr.filter( Boolean )
-    .join( ' ' )
+    attributeStr = attributeStr.filter( Boolean ).join( ' ' )
 
     const needEventId = attrs.some(
       attr => (
@@ -422,6 +417,35 @@ class Compiler {
       this.marks.rhtmlId++
       // for prefixing `import` after render complete
       this.hasRhtml = true
+    }
+
+    // re-map r-component is attribute to another holder
+    let attrIs
+    ast.attrs.forEach( attr => {
+      if ( attr.name === 'is' ) {
+        attrIs = attr
+      }
+    } )
+
+    if ( isRComponent && attrIs.holder ) {
+      const body = `( ${ rComponentMapStr } )[ ${ attrIs.holder.body } ]`
+      const mockIs = {
+        name: '_mocked_is_',
+        type: 'attribute',
+        value: attrIs.value,
+        constant: false,
+        holder: Object.assign( {}, attrIs.holder, {
+          holderId: attrIs.holder.holderId,
+          body,
+          setbody: false
+        } )
+      }
+      ast.attrs.push( mockIs )
+      this.saveExpression( {
+        body
+      } )
+      // del original holderId
+      delete attrIs.holder.holderId
     }
 
     return `<${ afterTagName }${ attributeStr ? ' ' + attributeStr : '' }>${ isComponent ? '' : childrenStr }</${ afterTagName }>`
